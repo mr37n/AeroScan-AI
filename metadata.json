@@ -1,0 +1,6 @@
+{
+  "name": "AeroScan AI",
+  "description": "Real-time air pollution detection using live camera scanning, Google Maps Pollution API, and Weather forecasts.",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
