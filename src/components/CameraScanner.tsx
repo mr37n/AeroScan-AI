@@ -144,9 +144,10 @@ export default function CameraScanner() {
       <div className="absolute inset-0 flex flex-col justify-between p-6 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/40">
         <div className="flex justify-between items-start">
           <motion.div 
-            animate={{ scale: [1, 1.02, 1] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            className="flex items-center gap-2 bg-white/10 backdrop-blur-xl px-3 py-1.5 rounded-xl border border-white/15 shadow-xl select-none"
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            className="flex items-center justify-center w-7 h-7 bg-white/10 backdrop-blur-xl rounded-xl border border-white/15 shadow-xl select-none"
+            title={isScanning ? 'Vision active' : 'Vision paused'}
           >
             <div className="relative flex items-center justify-center w-2 h-2">
               {isScanning ? (
@@ -161,29 +162,24 @@ export default function CameraScanner() {
                 </>
               )}
             </div>
-            <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] leading-none">
-              {isScanning ? 'Vision active' : 'Vision paused'}
-            </span>
           </motion.div>
           
           <div className="flex items-center gap-2">
             {isScanning ? (
               <button
                 onClick={stopCamera}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/10 backdrop-blur-xl rounded-xl border border-white/15 text-white hover:bg-white/25 transition-all active:scale-95 text-[9px] font-extrabold uppercase tracking-wider shadow-lg"
+                className="p-2 bg-white/10 backdrop-blur-xl rounded-xl border border-white/15 text-white hover:bg-white/25 transition-all active:scale-95 shadow-lg flex items-center justify-center"
                 title="Stop Scanning"
               >
-                <Camera size={13} className="text-red-500 fill-red-500/10" />
-                <span className="opacity-90">Stop Scan</span>
+                <Camera size={13} className="text-red-500 fill-red-500/20" />
               </button>
             ) : (
               <button
                 onClick={startCamera}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/10 backdrop-blur-xl rounded-xl border border-white/15 text-white hover:bg-white/25 transition-all active:scale-95 text-[9px] font-extrabold uppercase tracking-wider shadow-lg"
+                className="p-2 bg-white/10 backdrop-blur-xl rounded-xl border border-white/15 text-white hover:bg-white/25 transition-all active:scale-95 shadow-lg flex items-center justify-center"
                 title="Start Scanning"
               >
-                <Camera size={13} className="text-blue-400 fill-blue-500/10" />
-                <span className="opacity-90">Start Scan</span>
+                <Camera size={13} className="text-blue-400 fill-blue-500/20" />
               </button>
             )}
 
@@ -192,7 +188,7 @@ export default function CameraScanner() {
                 stopCamera();
                 startCamera();
               }}
-              className="p-2 bg-white/10 backdrop-blur-xl rounded-xl border border-white/10 text-white hover:bg-white/20 transition-all active:scale-95"
+              className="p-2 bg-white/10 backdrop-blur-xl rounded-xl border border-white/10 text-white hover:bg-white/20 transition-all active:scale-95 flex items-center justify-center"
               title="Mulai Ulang Kamera"
             >
               <RefreshCw size={13} />
@@ -217,7 +213,7 @@ export default function CameraScanner() {
             </div>
             <p className="text-white font-black text-[11px] uppercase tracking-[0.15em] leading-normal max-w-xs">Scanner Standby</p>
             <p className="text-white/40 text-[9px] font-bold uppercase tracking-wider max-w-xs leading-relaxed">
-              Tekan tombol "Start Scan" di kanan atas untuk mengaktifkan analisa visual kepadatan polutan secara real-time.
+              Tekan tombol kamera biru di kanan atas untuk mengaktifkan analisa visual kepadatan polutan secara real-time.
             </p>
           </div>
         ) : (
