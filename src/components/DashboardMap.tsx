@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { useState, useEffect } from 'react';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
-import { Activity, CloudSun, MapPin, Wind, Info } from 'lucide-react';
+import { Activity, CloudSun, MapPin, Wind, Info, Plus, Minus, Compass } from 'lucide-react';
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
@@ -46,10 +46,14 @@ export default function DashboardMap({
   const defaultCenter = { lat: -6.1850, lng: 106.8250 };
   const [stations, setStations] = useState(INITIAL_STATIONS);
   const [selectedStation, setSelectedStation] = useState<typeof INITIAL_STATIONS[0] | null>(INITIAL_STATIONS[0]);
+  const [center, setCenter] = useState(defaultCenter);
+  const [zoom, setZoom] = useState(11.5);
 
   // Adjust stations dynamically when user location is detected
   useEffect(() => {
     if (userCoords) {
+      setCenter(userCoords);
+      setZoom(12);
       const label = userCity || 'Anda';
       const dynamicStations = [
         { id: 'pusat', name: `Stasiun ${label} Pusat`, lat: userCoords.lat, lng: userCoords.lng, aqi: 48, status: 'Baik' },
@@ -122,8 +126,12 @@ export default function DashboardMap({
     <div className="w-full h-full relative group" id="pollution-map-container">
       <APIProvider apiKey={API_KEY}>
         <Map
-          center={userCoords || defaultCenter}
-          zoom={userCoords ? 12 : 11.5}
+          center={center}
+          zoom={zoom}
+          onCameraChanged={(ev) => {
+            setCenter(ev.detail.center);
+            setZoom(ev.detail.zoom);
+          }}
           gestureHandling={'greedy'}
           disableDefaultUI={true}
           mapId={'aeroscan-pollution-map'}
@@ -173,6 +181,51 @@ export default function DashboardMap({
           })}
         </Map>
       </APIProvider>
+
+      {/* Floating Map Utility Controls */}
+      <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
+        <button
+          onClick={() => setZoom(prev => Math.min(18, prev + 1))}
+          className={`w-8.5 h-8.5 rounded-xl border flex items-center justify-center transition-all duration-200 active:scale-95 shadow-xl ${
+            darkMode 
+              ? 'bg-slate-950/90 hover:bg-slate-905 border-slate-800 text-slate-200 shadow-slate-950/50' 
+              : 'bg-white hover:bg-slate-50 border-slate-150 text-slate-700 shadow-slate-200/30'
+          }`}
+          title="Zoom Masuk"
+        >
+          <Plus size={14} />
+        </button>
+        <button
+          onClick={() => setZoom(prev => Math.max(4, prev - 1))}
+          className={`w-8.5 h-8.5 rounded-xl border flex items-center justify-center transition-all duration-200 active:scale-95 shadow-xl ${
+            darkMode 
+              ? 'bg-slate-950/90 hover:bg-slate-905 border-slate-800 text-slate-200 shadow-slate-950/50' 
+              : 'bg-white hover:bg-slate-50 border-slate-150 text-slate-700 shadow-slate-200/30'
+          }`}
+          title="Zoom Keluar"
+        >
+          <Minus size={14} />
+        </button>
+        <button
+          onClick={() => {
+            if (userCoords) {
+              setCenter(userCoords);
+              setZoom(13.5);
+            } else {
+              setCenter(defaultCenter);
+              setZoom(11.5);
+            }
+          }}
+          className={`w-8.5 h-8.5 rounded-xl border flex items-center justify-center transition-all duration-200 active:scale-95 shadow-xl ${
+            darkMode 
+              ? 'bg-slate-950/90 hover:bg-slate-905 border-slate-800 text-slate-200 shadow-slate-950/50' 
+              : 'bg-white hover:bg-slate-50 border-slate-150 text-slate-700 shadow-slate-200/30'
+          }`}
+          title="Pusatkan Lokasi"
+        >
+          <Compass size={14} className={userCoords ? 'text-blue-500' : 'text-slate-500'} />
+        </button>
+      </div>
 
       {/* Floating Station Info Pane & Global Air Quality State */}
       <div className={`absolute bottom-4 right-4 md:bottom-5 md:right-5 w-76 max-w-[calc(100%-2rem)] flex flex-col gap-2.5 p-3.5 rounded-[22px] border shadow-2xl transition-all duration-300 backdrop-blur-xl z-20 ${

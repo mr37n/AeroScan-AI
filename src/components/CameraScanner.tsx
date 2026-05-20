@@ -6,64 +6,80 @@ import { motion } from 'motion/react';
 export default function CameraScanner() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [turbidity, setTurbidity] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const startCamera = async () => {
-      try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          setError('Browser Anda tidak mendukung akses kamera.');
-          return;
-        }
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsScanning(false);
+    setTurbidity(null);
+  };
 
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const hasVideoDevice = devices.some(device => device.kind === 'videoinput');
-
-        if (!hasVideoDevice) {
-          setError('Tidak ada kamera yang terdeteksi pada perangkat ini.');
-          return;
-        }
-
-        // Try requesting environment camera first, but allow fallback
-        const constraints = {
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          }
-        };
-
-        let stream: MediaStream;
-        try {
-          stream = await navigator.mediaDevices.getUserMedia(constraints);
-        } catch (err) {
-          console.warn('Failed to get constrained camera, falling back to basic video:', err);
-          stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        }
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-        setIsScanning(true);
-      } catch (err: any) {
-        if (err.name === 'NotAllowedError') {
-          setError('Izin kamera ditolak. Mohon aktifkan izin kamera di pengaturan browser.');
-        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-          setError('Kamera tidak ditemukan pada perangkat Anda.');
-        } else {
-          setError(`Gagal mengakses kamera: ${err.message || 'Error tidak diketahui'}`);
-        }
-        console.error('Camera access error:', err);
+  const startCamera = async () => {
+    try {
+      setError(null);
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setError('Browser Anda tidak mendukung akses kamera.');
+        return;
       }
-    };
 
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const hasVideoDevice = devices.some(device => device.kind === 'videoinput');
+
+      if (!hasVideoDevice) {
+        setError('Tidak ada kamera yang terdeteksi pada perangkat ini.');
+        return;
+      }
+
+      const constraints = {
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1285 },
+          height: { ideal: 725 }
+        }
+      };
+
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (err) {
+        console.warn('Failed to get constrained camera, falling back to basic video:', err);
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setIsScanning(true);
+    } catch (err: any) {
+      if (err.name === 'NotAllowedError') {
+        setError('Izin kamera ditolak. Mohon aktifkan izin kamera di pengaturan browser.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setError('Kamera tidak ditemukan pada perangkat Anda.');
+      } else {
+        setError(`Gagal mengakses kamera: ${err.message || 'Error tidak diketahui'}`);
+      }
+      console.error('Camera access error:', err);
+      setIsScanning(false);
+    }
+  };
+
+  useEffect(() => {
     startCamera();
 
     return () => {
-      const stream = videoRef.current?.srcObject as MediaStream;
-      stream?.getTracks().forEach(track => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
     };
   }, []);
 
@@ -133,17 +149,55 @@ export default function CameraScanner() {
             className="flex items-center gap-2 bg-white/10 backdrop-blur-xl px-3 py-1.5 rounded-xl border border-white/15 shadow-xl select-none"
           >
             <div className="relative flex items-center justify-center w-2 h-2">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-80 animate-ping" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.95)] animate-pulse" />
+              {isScanning ? (
+                <>
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80 animate-ping" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.95)] animate-pulse" />
+                </>
+              ) : (
+                <>
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-80 animate-ping" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.95)] animate-pulse" />
+                </>
+              )}
             </div>
-            <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] leading-none">Vision active</span>
+            <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] leading-none">
+              {isScanning ? 'Vision active' : 'Vision paused'}
+            </span>
           </motion.div>
-          <button 
-            onClick={() => window.location.reload()}
-            className="p-2.5 bg-white/10 backdrop-blur-xl rounded-xl border border-white/10 text-white hover:bg-white/20 transition-all active:scale-95"
-          >
-            <RefreshCw size={14} />
-          </button>
+          
+          <div className="flex items-center gap-2">
+            {isScanning ? (
+              <button
+                onClick={stopCamera}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/10 backdrop-blur-xl rounded-xl border border-white/15 text-white hover:bg-white/25 transition-all active:scale-95 text-[9px] font-extrabold uppercase tracking-wider shadow-lg"
+                title="Stop Scanning"
+              >
+                <Camera size={13} className="text-red-500 fill-red-500/10" />
+                <span className="opacity-90">Stop Scan</span>
+              </button>
+            ) : (
+              <button
+                onClick={startCamera}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/10 backdrop-blur-xl rounded-xl border border-white/15 text-white hover:bg-white/25 transition-all active:scale-95 text-[9px] font-extrabold uppercase tracking-wider shadow-lg"
+                title="Start Scanning"
+              >
+                <Camera size={13} className="text-blue-400 fill-blue-500/10" />
+                <span className="opacity-90">Start Scan</span>
+              </button>
+            )}
+
+            <button 
+              onClick={() => {
+                stopCamera();
+                startCamera();
+              }}
+              className="p-2 bg-white/10 backdrop-blur-xl rounded-xl border border-white/10 text-white hover:bg-white/20 transition-all active:scale-95"
+              title="Mulai Ulang Kamera"
+            >
+              <RefreshCw size={13} />
+            </button>
+          </div>
         </div>
 
         {error ? (
@@ -154,6 +208,16 @@ export default function CameraScanner() {
             <p className="text-white font-black text-xs uppercase tracking-[0.15em] leading-normal max-w-xs">{error}</p>
             <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider max-w-xs leading-relaxed">
               Hubungkan kamera atau berikan izin browser untuk menganalisis kepadatan polutan secara real-time.
+            </p>
+          </div>
+        ) : !isScanning ? (
+          <div className="absolute inset-x-6 top-20 bottom-6 flex flex-col items-center justify-center text-center gap-4">
+            <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20 shadow-lg shadow-blue-500/5 mb-2 animate-pulse">
+              <Camera size={24} className="text-blue-400" />
+            </div>
+            <p className="text-white font-black text-[11px] uppercase tracking-[0.15em] leading-normal max-w-xs">Scanner Standby</p>
+            <p className="text-white/40 text-[9px] font-bold uppercase tracking-wider max-w-xs leading-relaxed">
+              Tekan tombol "Start Scan" di kanan atas untuk mengaktifkan analisa visual kepadatan polutan secara real-time.
             </p>
           </div>
         ) : (
@@ -185,7 +249,9 @@ export default function CameraScanner() {
         )}
 
         {/* Scanning Line */}
-        <div className="absolute inset-x-0 h-24 bg-gradient-to-b from-transparent via-blue-500/25 to-transparent pointer-events-none animate-[scan_3.5s_linear_infinite]" style={{ top: 0 }} />
+        {isScanning && (
+          <div className="absolute inset-x-0 h-24 bg-gradient-to-b from-transparent via-blue-500/25 to-transparent pointer-events-none animate-[scan_3.5s_linear_infinite]" style={{ top: 0 }} />
+        )}
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
