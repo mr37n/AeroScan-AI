@@ -9,7 +9,6 @@ import {
   Wind, 
   ShieldCheck, 
   Activity, 
-  BarChart3, 
   CloudSun, 
   Map as MapIcon, 
   MapPin,
@@ -32,7 +31,6 @@ export default function App() {
   const [denseMapData, setDenseMapData] = useState(false);
   const [saveLocalHistory, setSaveLocalHistory] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
-  const [showHistoricalTrends, setShowHistoricalTrends] = useState(false);
 
   // Real-time device coordinate geocoding status values
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -219,49 +217,6 @@ export default function App() {
                     <WeatherForecast darkMode={darkMode} className="h-full" userCity={userCity} />
                   </div>
                 </div>
-              </div>
-
-              {/* Row 1.5: Historical Trends Expandable Container */}
-              <div className="flex flex-col gap-4 mt-2">
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center text-white shadow-sm">
-                      <BarChart3 size={11} />
-                    </div>
-                    <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Historical Trends</h3>
-                  </div>
-                  <button
-                    onClick={() => setShowHistoricalTrends(!showHistoricalTrends)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all duration-300 active:scale-95 cursor-pointer ${
-                      showHistoricalTrends
-                        ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20'
-                        : darkMode
-                          ? 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                          : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 shadow-sm'
-                    }`}
-                  >
-                    <span>{showHistoricalTrends ? 'Sembunyikan Grafik' : 'Tampilkan Analisis Tren'}</span>
-                  </button>
-                </div>
-
-                <AnimatePresence initial={false}>
-                  {showHistoricalTrends && (
-                    <motion.div
-                      key="trends-expand"
-                      initial={{ opacity: 0, height: 0, scale: 0.98 }}
-                      animate={{ opacity: 1, height: 'auto', scale: 1 }}
-                      exit={{ opacity: 0, height: 0, scale: 0.98 }}
-                      transition={{ duration: 0.35, ease: "easeInOut" }}
-                      className="overflow-hidden"
-                    >
-                      <div className={`rounded-[36px] overflow-hidden border transition-all duration-300 ${
-                        darkMode ? 'border-slate-800 bg-slate-900/40' : 'border-white bg-white shadow-2xl shadow-slate-100/50'
-                      }`}>
-                        <PollutionChart darkMode={darkMode} userCity={userCity} />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
 
               {/* Row 2: Geo Overlay Map (Full Width with uniform top gap) */}

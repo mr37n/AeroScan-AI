@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Activity, CloudSun, MapPin, Wind, Info, Plus, Minus, Compass } from 'lucide-react';
 
