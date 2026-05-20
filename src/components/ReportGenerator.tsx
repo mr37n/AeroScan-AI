@@ -1,11 +1,12 @@
 import { FileText, Download, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, ReactNode } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 interface ReportGeneratorProps {
   userCity?: string;
   userCoords?: { lat: number; lng: number } | null;
+  trigger?: (generatePDF: () => void, isGenerating: boolean) => ReactNode;
 }
 
 // Helper function to convert CSS OKLCH values to standard rgb/rgba.
@@ -73,7 +74,7 @@ function oklchToRgb(oklchStr: string): string {
   }
 }
 
-export default function ReportGenerator({ userCity = "Jakarta", userCoords = null }: ReportGeneratorProps) {
+export default function ReportGenerator({ userCity = "Jakarta", userCoords = null, trigger }: ReportGeneratorProps) {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const generatePDF = async () => {
@@ -603,6 +604,10 @@ export default function ReportGenerator({ userCity = "Jakarta", userCoords = nul
       setIsGenerating(false);
     }
   };
+
+  if (trigger) {
+    return <>{trigger(generatePDF, isGenerating)}</>;
+  }
 
   return (
     <button

@@ -3,13 +3,20 @@ import * as tf from '@tensorflow/tfjs';
 import { Camera, RefreshCw, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
-export default function CameraScanner() {
+interface CameraScannerProps {
+  onScanUpdate?: (turbidity: number) => void;
+}
+
+export default function CameraScanner({ onScanUpdate }: CameraScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [turbidity, setTurbidity] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const lastReportedRef = useRef<number>(-1);
+  const lastReportTimeRef = useRef<number>(0);
 
   const stopCamera = () => {
     if (streamRef.current) {
@@ -109,7 +116,15 @@ export default function CameraScanner() {
         // Normalize to a 0-100 scale (example heuristic)
         // High std = clear/high contrast, Low std = hazy/foggy
         const turbidityValue = Math.max(0, Math.min(100, 100 - (std * 2)));
-        setTurbidity(Math.round(turbidityValue));
+        const rounded = Math.round(turbidityValue);
+        setTurbidity(rounded);
+
+        const now = Date.now();
+        if (onScanUpdate && (rounded !== lastReportedRef.current || now - lastReportTimeRef.current > 1200)) {
+          lastReportedRef.current = rounded;
+          lastReportTimeRef.current = now;
+          onScanUpdate(rounded);
+        }
 
         imageTensor.dispose();
         gray.dispose();
