@@ -1,16 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Activity, BarChart2 } from 'lucide-react';
-
-const data = [
-  { day: 'Senin', pm25: 12, pm10: 18, aqi: 45 },
-  { day: 'Selasa', pm25: 15, pm10: 22, aqi: 52 },
-  { day: 'Rabu', pm25: 10, pm10: 15, aqi: 38 },
-  { day: 'Kamis', pm25: 25, pm10: 35, aqi: 75 },
-  { day: 'Jumat', pm25: 18, pm10: 28, aqi: 62 },
-  { day: 'Sabtu', pm25: 14, pm10: 21, aqi: 48 },
-  { day: 'Minggu', pm25: 11, pm10: 17, aqi: 42 },
-];
 
 const CustomTooltip = ({ active, payload, label, darkMode }: any) => {
   if (active && payload && payload.length) {
@@ -39,11 +29,40 @@ const CustomTooltip = ({ active, payload, label, darkMode }: any) => {
     );
   }
   return null;
-};
+};export default function PollutionChart({ darkMode = false, userCity = "Jakarta" }: { darkMode?: boolean; userCity?: string }) {
+  const chartData = useMemo(() => {
+    const result = [];
+    const today = new Date();
+    const INDO_DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    
+    const basePatterns: Record<string, { pm25: number; pm10: number; aqi: number }> = {
+      'Senin': { pm25: 12, pm10: 18, aqi: 45 },
+      'Selasa': { pm25: 15, pm10: 22, aqi: 52 },
+      'Rabu': { pm25: 10, pm10: 15, aqi: 38 },
+      'Kamis': { pm25: 25, pm10: 35, aqi: 75 },
+      'Jumat': { pm25: 18, pm10: 28, aqi: 62 },
+      'Sabtu': { pm25: 14, pm10: 21, aqi: 48 },
+      'Minggu': { pm25: 11, pm10: 17, aqi: 42 },
+    };
 
-export default function PollutionChart({ darkMode = false, userCity = "Jakarta" }: { darkMode?: boolean; userCity?: string }) {
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+      const dayName = INDO_DAYS[d.getDay()];
+      const pattern = basePatterns[dayName] || { pm25: 15, pm10: 20, aqi: 50 };
+      
+      result.push({
+        day: i === 0 ? `${dayName} (Hari Ini)` : dayName,
+        pm25: pattern.pm25,
+        pm10: pattern.pm10,
+        aqi: pattern.aqi
+      });
+    }
+    return result;
+  }, []);
+
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const activeData = hoveredIndex !== null ? data[hoveredIndex] : null;
+  const activeData = hoveredIndex !== null ? chartData[hoveredIndex] : null;
 
   return (
     <div className={`w-full transition-all duration-300 p-8 md:p-12 ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-white text-slate-900'}`} id="historical-chart-container">
@@ -68,7 +87,7 @@ export default function PollutionChart({ darkMode = false, userCity = "Jakarta" 
               <BarChart2 size={16} className="text-blue-500 animate-pulse" />
               <div className="flex gap-6">
                 <div>
-                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">{activeData.day}</span>
+                  <span className="text-[8px] font-black text-slate-450 uppercase tracking-widest block mb-0.5">{activeData.day}</span>
                   <div className="flex items-baseline gap-1">
                     <span className={`text-sm font-black transition-colors ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>{activeData.pm25}</span>
                     <span className="text-[9px] font-bold text-slate-450">µg/m³</span>
@@ -76,7 +95,7 @@ export default function PollutionChart({ darkMode = false, userCity = "Jakarta" 
                 </div>
                 <div className="w-px h-6 bg-slate-300 dark:bg-slate-800 self-center" />
                 <div>
-                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">AQI</span>
+                  <span className="text-[8px] font-black text-slate-450 uppercase tracking-widest block mb-0.5">AQI</span>
                   <span className="text-sm font-black text-orange-500 dark:text-orange-400">{activeData.aqi}</span>
                 </div>
               </div>
@@ -106,7 +125,7 @@ export default function PollutionChart({ darkMode = false, userCity = "Jakarta" 
       <div className="h-[280px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart 
-            data={data} 
+            data={chartData} 
             margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
             onMouseMove={(state: any) => {
               if (state && typeof state.activeTooltipIndex === 'number') {

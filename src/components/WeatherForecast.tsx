@@ -1,15 +1,6 @@
 import { Cloud, Sun, CloudRain, Wind, ThermometerSun } from 'lucide-react';
 import { motion } from 'motion/react';
-import { ReactNode } from 'react';
-
-const forecasts = [
-  { day: 'Besok', temp: 32, icon: 'sun', label: 'Cerah' },
-  { day: 'Rab', temp: 28, icon: 'cloud-rain', label: 'Hujan Ringan' },
-  { day: 'Kam', temp: 30, icon: 'cloud', label: 'Berawan' },
-  { day: 'Jum', temp: 31, icon: 'sun', label: 'Cerah' },
-  { day: 'Sab', temp: 27, icon: 'cloud-rain', label: 'Hujan Petir' },
-  { day: 'Min', temp: 29, icon: 'cloud', label: 'Berawan' },
-];
+import { ReactNode, useMemo } from 'react';
 
 const WeatherIcon = ({ type, size = 24, animated = true }: { type: string, size?: number, animated?: boolean }) => {
   const props = { size, className: "text-slate-700" };
@@ -41,6 +32,40 @@ const WeatherIcon = ({ type, size = 24, animated = true }: { type: string, size?
 };
 
 export default function WeatherForecast({ darkMode = false, className = "p-6 md:p-7 flex flex-col gap-6", userCity = "Jakarta" }: { darkMode?: boolean, className?: string, userCity?: string }) {
+  const dynamicForecasts = useMemo(() => {
+    const result = [];
+    const today = new Date();
+    const INDO_DAYS_SHORT = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+    
+    // Some mock but highly realistic local temperature/conditions mappings
+    const weatherPool = [
+      { temp: 32, icon: 'sun', label: 'Cerah' },
+      { temp: 28, icon: 'cloud-rain', label: 'Hujan Ringan' },
+      { temp: 30, icon: 'cloud', label: 'Berawan' },
+      { temp: 31, icon: 'sun', label: 'Cerah' },
+      { temp: 27, icon: 'cloud-rain', label: 'Hujan Petir' },
+      { temp: 29, icon: 'cloud', label: 'Berawan' },
+      { temp: 33, icon: 'wind', label: 'Berangin' },
+    ];
+
+    for (let i = 1; i <= 6; i++) {
+      const d = new Date();
+      d.setDate(today.getDate() + i);
+      const dayIndex = d.getDay();
+      const dayName = i === 1 ? 'Besok' : INDO_DAYS_SHORT[dayIndex];
+      
+      const poolItem = weatherPool[dayIndex % weatherPool.length];
+      
+      result.push({
+        day: dayName,
+        temp: poolItem.temp,
+        icon: poolItem.icon,
+        label: poolItem.label
+      });
+    }
+    return result;
+  }, []);
+
   return (
     <div className={`w-full transition-all duration-300 ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-white text-slate-900'} ${className}`} id="weather-forecast-container">
       <div className={`flex items-center justify-between border-b pb-4 transition-colors ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
@@ -60,7 +85,7 @@ export default function WeatherForecast({ darkMode = false, className = "p-6 md:
       </div>
 
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
-        {forecasts.map((f, i) => (
+        {dynamicForecasts.map((f, i) => (
           <div key={i} className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all hover:shadow-lg hover:-translate-y-0.5 group ${
             darkMode 
               ? 'bg-slate-950/40 border-slate-800/80 hover:bg-slate-950 hover:shadow-slate-950/50' 
