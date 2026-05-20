@@ -15,8 +15,13 @@ export default function CameraScanner({ onScanUpdate }: CameraScannerProps) {
   const [turbidity, setTurbidity] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Throttling and state management for multi-camera capabilities
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [currentDeviceIndex, setCurrentDeviceIndex] = useState<number>(0);
+  
   const lastReportedRef = useRef<number>(-1);
   const lastReportTimeRef = useRef<number>(0);
+  const lastAnalysisTimeRef = useRef<number>(0);
 
   const stopCamera = () => {
     if (streamRef.current) {
@@ -30,7 +35,24 @@ export default function CameraScanner({ onScanUpdate }: CameraScannerProps) {
     setTurbidity(null);
   };
 
-  const startCamera = async () => {
+  const getCameraDevices = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        return [];
+      }
+      const allDevices = await navigator.mediaDevices.enumerateDevices();
+      const videoIn = allDevices.filter(d => d.kind === 'videoinput');
+      
+      // Map and filter invalid labels (browsers block label enumeration before permission)
+      setDevices(videoIn);
+      return videoIn;
+    } catch (err) {
+      console.warn('Error enumerating devices:', err);
+      return [];
+    }
+  };
+
+  const startCamera = async (deviceIdx = currentDeviceIndex) => {
     try {
       setError(null);
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -38,28 +60,57 @@ export default function CameraScanner({ onScanUpdate }: CameraScannerProps) {
         return;
       }
 
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const hasVideoDevice = devices.some(device => device.kind === 'videoinput');
-
-      if (!hasVideoDevice) {
-        setError('Tidak ada kamera yang terdeteksi pada perangkat ini.');
-        return;
+      // Ensure that any previous tracks are Stopped before turning on a new camera
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
 
-      const constraints = {
+      // Query available video inputs
+      let videoIn = await getCameraDevices();
+      
+      // If we don't have permission yet, we request standard camera access first
+      // to grant label permissions, then enumerate again to list them properly.
+      let stream: MediaStream;
+      
+      const standardConstraints: MediaStreamConstraints = {
         video: {
           facingMode: { ideal: 'environment' },
-          width: { ideal: 1285 },
-          height: { ideal: 725 }
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
         }
       };
 
-      let stream: MediaStream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-      } catch (err) {
-        console.warn('Failed to get constrained camera, falling back to basic video:', err);
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoIn.length === 0) {
+        // Fallback or request standard permission
+        stream = await navigator.mediaDevices.getUserMedia(standardConstraints);
+        // Re-enumerate now that permission has been granted
+        videoIn = await getCameraDevices();
+      } else {
+        const targetDevice = videoIn[deviceIdx % videoIn.length];
+        setCurrentDeviceIndex(deviceIdx % videoIn.length);
+
+        if (targetDevice && targetDevice.deviceId) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: {
+                deviceId: { exact: targetDevice.deviceId },
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+              }
+            });
+          } catch (err) {
+            console.warn('Failed with strict device ID constraint, falling back with ideal:', err);
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: {
+                deviceId: { ideal: targetDevice.deviceId },
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+              }
+            });
+          }
+        } else {
+          stream = await navigator.mediaDevices.getUserMedia(standardConstraints);
+        }
       }
 
       streamRef.current = stream;
@@ -78,6 +129,16 @@ export default function CameraScanner({ onScanUpdate }: CameraScannerProps) {
       console.error('Camera access error:', err);
       setIsScanning(false);
     }
+  };
+
+  const cycleCamera = async () => {
+    if (devices.length <= 1) return;
+    const nextIdx = (currentDeviceIndex + 1) % devices.length;
+    stopCamera();
+    // Allow small timeout for browser to release hardware safely
+    setTimeout(() => {
+      startCamera(nextIdx);
+    }, 150);
   };
 
   useEffect(() => {
@@ -100,36 +161,47 @@ export default function CameraScanner({ onScanUpdate }: CameraScannerProps) {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
 
+      const now = Date.now();
+      // Throttle: Process frame only every 200ms (5 FPS)
+      // This reduces processing load by up to 90%, preventing browser hang, overheating,
+      // and stuttering on mid-to-high class mobile devices/tablets.
+      if (now - lastAnalysisTimeRef.current < 200) {
+        animationFrameId = requestAnimationFrame(analyzeFrame);
+        return;
+      }
+
       if (ctx && video.readyState === 4) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        // Tensor processing for Turbidity/Haze estimation
-        // Real logic: Measure brightness variance and contrast
-        const imageTensor = tf.browser.fromPixels(canvas);
-        const gray = tf.image.rgbToGrayscale(imageTensor);
-        
-        // Simple heuristic: Standard deviation of pixel values correlates with visibility
-        const moments = tf.moments(gray);
-        const std = Math.sqrt((await moments.variance.data())[0]);
-        const mean = (await moments.mean.data())[0];
+        lastAnalysisTimeRef.current = now;
+        try {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          
+          // Tensor processing for Turbidity/Haze estimation
+          const imageTensor = tf.browser.fromPixels(canvas);
+          const gray = tf.image.rgbToGrayscale(imageTensor);
+          
+          // Measure brightness variance and contrast
+          const moments = tf.moments(gray);
+          const varianceArr = await moments.variance.data();
+          const std = Math.sqrt(varianceArr[0]);
 
-        // Normalize to a 0-100 scale (example heuristic)
-        // High std = clear/high contrast, Low std = hazy/foggy
-        const turbidityValue = Math.max(0, Math.min(100, 100 - (std * 2)));
-        const rounded = Math.round(turbidityValue);
-        setTurbidity(rounded);
+          // Normalize to 0-100 scale
+          const turbidityValue = Math.max(0, Math.min(100, 100 - (std * 2)));
+          const rounded = Math.round(turbidityValue);
+          setTurbidity(rounded);
 
-        const now = Date.now();
-        if (onScanUpdate && (rounded !== lastReportedRef.current || now - lastReportTimeRef.current > 1200)) {
-          lastReportedRef.current = rounded;
-          lastReportTimeRef.current = now;
-          onScanUpdate(rounded);
+          if (onScanUpdate && (rounded !== lastReportedRef.current || now - lastReportTimeRef.current > 1200)) {
+            lastReportedRef.current = rounded;
+            lastReportTimeRef.current = now;
+            onScanUpdate(rounded);
+          }
+
+          imageTensor.dispose();
+          gray.dispose();
+          moments.mean.dispose();
+          moments.variance.dispose();
+        } catch (err) {
+          console.error('Video frame analysis error:', err);
         }
-
-        imageTensor.dispose();
-        gray.dispose();
-        moments.mean.dispose();
-        moments.variance.dispose();
       }
 
       animationFrameId = requestAnimationFrame(analyzeFrame);
@@ -176,6 +248,18 @@ export default function CameraScanner({ onScanUpdate }: CameraScannerProps) {
           )}
           
           <div className="flex items-center gap-2">
+            {/* Camera Cycle Trigger for Multi-Lens Mobile/Tablets */}
+            {devices.length > 1 && (
+              <button
+                onClick={cycleCamera}
+                className="p-2 gap-1.5 px-3 bg-indigo-500/20 backdrop-blur-xl rounded-xl border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/30 transition-all active:scale-95 shadow-lg flex items-center justify-center"
+                title="Ganti Lensa Kamera"
+              >
+                <RefreshCw size={13} className="text-indigo-400 transition-transform duration-300 active:rotate-180" />
+                <span className="text-[9px] font-black tracking-wider uppercase">Ganti Kamera</span>
+              </button>
+            )}
+
             {isScanning ? (
               <button
                 onClick={stopCamera}
