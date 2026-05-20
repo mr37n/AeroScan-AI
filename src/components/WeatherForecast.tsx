@@ -31,7 +31,7 @@ const WeatherIcon = ({ type, size = 24, animated = true }: { type: string, size?
   }
 };
 
-export default function WeatherForecast({ darkMode = false, className = "p-6 md:p-7 flex flex-col gap-6", userCity = "Jakarta" }: { darkMode?: boolean, className?: string, userCity?: string }) {
+export default function WeatherForecast({ darkMode = false, className = "h-full", userCity = "Jakarta" }: { darkMode?: boolean, className?: string, userCity?: string }) {
   const dynamicForecasts = useMemo(() => {
     const result = [];
     const today = new Date();
@@ -67,40 +67,46 @@ export default function WeatherForecast({ darkMode = false, className = "p-6 md:
   }, []);
 
   return (
-    <div className={`w-full transition-all duration-300 ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-white text-slate-900'} ${className}`} id="weather-forecast-container">
-      <div className={`flex items-center justify-between border-b pb-4 transition-colors ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
-        <div className="flex items-center gap-3">
-          <div className={`p-2.5 rounded-xl border shadow-sm shrink-0 transition-all duration-300 ${darkMode ? 'bg-orange-500/10 text-orange-400 border-orange-500/20 shadow-orange-950/5' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
-            <ThermometerSun size={20} />
-          </div>
-          <div>
-            <p className="text-[9px] text-slate-400 font-extrabold uppercase tracking-[0.16em] leading-none mb-1">Local Feed</p>
-            <h3 className={`text-xs sm:text-sm font-black tracking-tight leading-none uppercase transition-colors ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>Forecast</h3>
-          </div>
-        </div>
-        <div className="text-right">
-          <span className={`text-base sm:text-lg font-black tracking-tighter tabular-nums drop-shadow-sm leading-none block transition-colors ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>31°C</span>
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{userCity}, ID</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
-        {dynamicForecasts.map((f, i) => (
-          <div key={i} className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all hover:shadow-lg hover:-translate-y-0.5 group ${
-            darkMode 
-              ? 'bg-slate-950/40 border-slate-800/80 hover:bg-slate-950 hover:shadow-slate-950/50' 
-              : 'bg-slate-50/60 border-slate-100/70 hover:bg-white hover:shadow-slate-100/50'
-          }`}>
-            <span className="text-[9px] font-bold text-slate-400 mb-2 uppercase tracking-wider group-hover:text-blue-500 transition-colors">{f.day}</span>
-            <div className="mb-2">
-              <WeatherIcon type={f.icon} size={20} />
+    <div className={`w-full h-full flex flex-col justify-between transition-all duration-300 ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-white text-slate-900'} ${className}`} id="weather-forecast-container">
+      {/* Top half elements with inner spacing */}
+      <div className="p-6 md:p-7 pb-3 flex flex-col justify-between flex-1 gap-5">
+        {/* Header */}
+        <div className={`flex items-center justify-between border-b pb-4 transition-colors ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 rounded-xl border shadow-sm shrink-0 transition-all duration-300 ${darkMode ? 'bg-orange-500/10 text-orange-400 border-orange-500/20 shadow-orange-950/5' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
+              <ThermometerSun size={20} />
             </div>
-            <span className={`text-sm font-black leading-none transition-colors ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>{f.temp}°</span>
+            <div>
+              <p className="text-[9px] text-slate-400 font-extrabold uppercase tracking-[0.16em] leading-none mb-1">Local Feed</p>
+              <h3 className={`text-xs sm:text-sm font-black tracking-tight leading-none uppercase transition-colors ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>Forecast</h3>
+            </div>
           </div>
-        ))}
+          <div className="text-right">
+            <span className={`text-base sm:text-lg font-black tracking-tighter tabular-nums drop-shadow-sm leading-none block transition-colors ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>31°C</span>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{userCity}, ID</p>
+          </div>
+        </div>
+
+        {/* 6-day Grid utilising grid-cols-3 on PC, tablet and mobile */}
+        <div className="grid grid-cols-3 gap-3 w-full flex-1">
+          {dynamicForecasts.map((f, i) => (
+            <div key={i} className={`flex flex-col items-center justify-center p-3 rounded-2xl border shadow-inner transition-all hover:shadow-lg hover:-translate-y-0.5 group ${
+              darkMode 
+                ? 'bg-slate-950/40 border-slate-800/80 hover:bg-slate-950 hover:shadow-slate-950/50 shadow-slate-950/40' 
+                : 'bg-slate-50/60 border-slate-100/70 hover:bg-white hover:shadow-slate-100/50 shadow-slate-100/40'
+            }`}>
+              <span className="text-[9px] font-bold text-slate-400 mb-2 uppercase tracking-wider group-hover:text-blue-500 transition-colors">{f.day}</span>
+              <div className="mb-2">
+                <WeatherIcon type={f.icon} size={20} />
+              </div>
+              <span className={`text-sm font-black leading-none transition-colors ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>{f.temp}°</span>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className={`rounded-2xl p-4.5 flex items-center justify-between text-white overflow-hidden relative group transition-all duration-300 ${darkMode ? 'bg-slate-950 border border-slate-800' : 'bg-slate-900'}`}>
+      {/* Bottom dark card aligned perfectly flush with the bottom container edge */}
+      <div className={`p-5 flex items-center justify-between text-white overflow-hidden relative group transition-all duration-300 ${darkMode ? 'bg-slate-950 border-t border-slate-800/40' : 'bg-slate-900'} rounded-b-[34px]`}>
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         <div className="z-10 flex flex-col gap-0.5">
           <p className="text-[8px] font-black text-white/50 uppercase tracking-[0.25em] leading-none mb-1">Live Status</p>

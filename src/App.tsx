@@ -32,6 +32,7 @@ export default function App() {
   const [denseMapData, setDenseMapData] = useState(false);
   const [saveLocalHistory, setSaveLocalHistory] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [showHistoricalTrends, setShowHistoricalTrends] = useState(false);
 
   // Real-time device coordinate geocoding status values
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -201,7 +202,7 @@ export default function App() {
                     </div>
                     <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Scanner Area</h3>
                   </div>
-                  <div className="rounded-[36px] overflow-hidden shadow-2xl shadow-slate-200 border border-white h-[420px] bg-slate-950">
+                  <div className="rounded-[36px] overflow-hidden shadow-2xl shadow-slate-205 border border-white h-[420px] bg-slate-950">
                     <CameraScanner />
                   </div>
                 </div>
@@ -215,20 +216,63 @@ export default function App() {
                     <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Local Forecast</h3>
                   </div>
                   <div className={`rounded-[36px] overflow-hidden h-[420px] transition-all duration-300 border ${darkMode ? 'border-slate-800 bg-slate-900 shadow-2xl shadow-slate-950/20' : 'border-white bg-white shadow-2xl shadow-slate-200'}`}>
-                    <WeatherForecast darkMode={darkMode} className="h-full p-6 md:p-7 flex flex-col justify-between" userCity={userCity} />
+                    <WeatherForecast darkMode={darkMode} className="h-full" userCity={userCity} />
                   </div>
                 </div>
               </div>
 
-              {/* Row 2: Geo Overlay Map (Full Width for grand visual real-estate) */}
-              <div className="flex flex-col">
+              {/* Row 1.5: Historical Trends Expandable Container */}
+              <div className="flex flex-col gap-4 mt-2">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center text-white shadow-sm">
+                      <BarChart3 size={11} />
+                    </div>
+                    <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Historical Trends</h3>
+                  </div>
+                  <button
+                    onClick={() => setShowHistoricalTrends(!showHistoricalTrends)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all duration-300 active:scale-95 cursor-pointer ${
+                      showHistoricalTrends
+                        ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20'
+                        : darkMode
+                          ? 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                          : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 shadow-sm'
+                    }`}
+                  >
+                    <span>{showHistoricalTrends ? 'Sembunyikan Grafik' : 'Tampilkan Analisis Tren'}</span>
+                  </button>
+                </div>
+
+                <AnimatePresence initial={false}>
+                  {showHistoricalTrends && (
+                    <motion.div
+                      key="trends-expand"
+                      initial={{ opacity: 0, height: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, height: 'auto', scale: 1 }}
+                      exit={{ opacity: 0, height: 0, scale: 0.98 }}
+                      transition={{ duration: 0.35, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className={`rounded-[36px] overflow-hidden border transition-all duration-300 ${
+                        darkMode ? 'border-slate-800 bg-slate-900/40' : 'border-white bg-white shadow-2xl shadow-slate-100/50'
+                      }`}>
+                        <PollutionChart darkMode={darkMode} userCity={userCity} />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Row 2: Geo Overlay Map (Full Width with uniform top gap) */}
+              <div className="flex flex-col mt-4 sm:mt-6">
                 <div className="flex items-center gap-2 mb-4 px-1">
                   <div className="w-6 h-6 bg-teal-500 rounded-lg flex items-center justify-center text-white shadow-sm">
                     <MapIcon size={12} />
                   </div>
                   <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Geo Overlay</h3>
                 </div>
-                <div className={`rounded-[36px] overflow-hidden h-[480px] w-full transition-all duration-300 border ${darkMode ? 'border-slate-800 bg-slate-900 shadow-2xl shadow-slate-950/20' : 'border-white bg-slate-100 shadow-2xl shadow-slate-205'}`}>
+                <div className={`rounded-[36px] overflow-hidden h-[480px] w-full transition-all duration-300 border ${darkMode ? 'border-slate-800 bg-slate-900 shadow-2xl shadow-slate-950/20' : 'border-white bg-slate-100 shadow-2xl shadow-slate-200'}`}>
                   <DashboardMap darkMode={darkMode} userCoords={userCoords} userCity={userCity} />
                 </div>
               </div>
@@ -317,11 +361,11 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.3 }}
-              className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch"
+              className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch"
             >
               {/* Health Advisory left panel */}
-              <div className="lg:col-span-8 flex flex-col">
-                <div className={`p-8 md:p-12 rounded-[40px] border shadow-2xl relative overflow-hidden flex flex-col justify-between h-full transition-all duration-300 ${
+              <div className="lg:col-span-2 flex flex-col h-full">
+                <div className={`p-8 md:p-10 rounded-[40px] border shadow-2xl relative overflow-hidden flex flex-col justify-between h-full transition-all duration-300 ${
                   darkMode 
                     ? 'bg-slate-900 border-slate-800 text-slate-100 shadow-slate-950/40' 
                     : 'bg-white border-slate-100 text-slate-900'
@@ -435,8 +479,8 @@ export default function App() {
               </div>
 
               {/* Sidebar on Health Hub for additional medical guides - Stretched to identical height */}
-              <div className="lg:col-span-4 flex flex-col h-full">
-                <div className={`p-8 rounded-[40px] border shadow-2xl flex flex-col gap-6 h-full justify-between transition-all duration-300 ${
+              <div className="lg:col-span-1 flex flex-col h-full">
+                <div className={`p-8 md:p-10 rounded-[40px] border shadow-2xl flex flex-col gap-6 h-full justify-between transition-all duration-300 ${
                   darkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-100 text-slate-900'
                 }`}>
                   <div>
@@ -630,7 +674,7 @@ export default function App() {
                       </p>
                     </div>
                     <div className="w-full flex justify-center pt-2">
-                      <ReportGenerator />
+                      <ReportGenerator userCity={userCity} userCoords={userCoords} />
                     </div>
                   </div>
                 </div>

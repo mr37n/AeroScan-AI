@@ -122,11 +122,11 @@ const CustomTooltip = ({ active, payload, label, darkMode }: any) => {
         </div>
       </div>
 
-      <div className="h-[280px] w-full">
+      <div className="h-[295px] w-full pb-4">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart 
             data={chartData} 
-            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            margin={{ top: 15, right: 15, left: -15, bottom: 25 }}
             onMouseMove={(state: any) => {
               if (state && typeof state.activeTooltipIndex === 'number') {
                 setHoveredIndex(state.activeTooltipIndex);
@@ -151,8 +151,9 @@ const CustomTooltip = ({ active, payload, label, darkMode }: any) => {
               dataKey="day" 
               axisLine={false} 
               tickLine={false} 
+              height={45}
               tick={{ fontSize: 10, fontWeight: 705, fill: '#94a3b8' }}
-              dy={15}
+              dy={10}
             />
             <YAxis 
               axisLine={false} 

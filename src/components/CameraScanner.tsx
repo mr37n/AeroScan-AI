@@ -142,27 +142,23 @@ export default function CameraScanner() {
       
       {/* HUD Overlay */}
       <div className="absolute inset-0 flex flex-col justify-between p-6 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/40">
-        <div className="flex justify-between items-start">
-          <motion.div 
-            animate={{ scale: [1, 1.05, 1] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-            className="flex items-center justify-center w-7 h-7 bg-white/10 backdrop-blur-xl rounded-xl border border-white/15 shadow-xl select-none"
-            title={isScanning ? 'Vision active' : 'Vision paused'}
-          >
-            <div className="relative flex items-center justify-center w-2 h-2">
-              {isScanning ? (
-                <>
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80 animate-ping" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.95)] animate-pulse" />
-                </>
-              ) : (
-                <>
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-80 animate-ping" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.95)] animate-pulse" />
-                </>
-              )}
+        <div className="flex justify-between items-center w-full z-15">
+          {isScanning ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-950/80 backdrop-blur-xl rounded-xl border border-rose-500/20 text-[9px] font-black uppercase tracking-widest text-rose-400 shadow-xl select-none animate-pulse-fast">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.85)]"></span>
+              </span>
+              <span>VISION ACTIVE</span>
             </div>
-          </motion.div>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-950/80 backdrop-blur-xl rounded-xl border border-amber-500/20 text-[9px] font-black uppercase tracking-widest text-amber-500 shadow-xl select-none">
+              <span className="relative flex h-2 w-2">
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.85)]"></span>
+              </span>
+              <span>STANDBY</span>
+            </div>
+          )}
           
           <div className="flex items-center gap-2">
             {isScanning ? (
@@ -197,8 +193,8 @@ export default function CameraScanner() {
         </div>
 
         {error ? (
-          <div className="absolute inset-x-6 top-20 bottom-6 flex flex-col items-center justify-center text-center gap-4">
-            <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center border border-red-500/20 shadow-lg shadow-red-500/5 mb-2">
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 gap-4 bg-slate-950/80 backdrop-blur-sm z-10">
+            <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center border border-red-500/20 shadow-lg shadow-red-500/5 mb-1">
               <Camera size={28} className="text-red-400" />
             </div>
             <p className="text-white font-black text-xs uppercase tracking-[0.15em] leading-normal max-w-xs">{error}</p>
@@ -207,8 +203,8 @@ export default function CameraScanner() {
             </p>
           </div>
         ) : !isScanning ? (
-          <div className="absolute inset-x-6 top-20 bottom-6 flex flex-col items-center justify-center text-center gap-4">
-            <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20 shadow-lg shadow-blue-500/5 mb-2 animate-pulse">
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 gap-4 bg-slate-950/85 backdrop-blur-sm z-10">
+            <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20 shadow-lg shadow-blue-500/5 mb-1 animate-pulse">
               <Camera size={24} className="text-blue-400" />
             </div>
             <p className="text-white font-black text-[11px] uppercase tracking-[0.15em] leading-normal max-w-xs">Scanner Standby</p>
@@ -217,7 +213,7 @@ export default function CameraScanner() {
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-5 z-10">
             <div className="flex items-baseline gap-2">
               <span className="text-7xl font-black text-white tracking-tighter tabular-nums leading-none">
                 {turbidity !== null ? turbidity : '--'}
@@ -237,37 +233,40 @@ export default function CameraScanner() {
                   transition={{ type: 'spring', stiffness: 40 }}
                 />
               </div>
-              <p className="text-[10px] text-white/50 font-bold uppercase tracking-widest">
+              <p className="text-[10px] text-white/50 font-bold uppercase tracking-widest w-full">
                 System: Processing Visual Data
               </p>
             </div>
           </div>
         )}
 
-        {/* Scanning Line */}
-        {isScanning && (
-          <div className="absolute inset-x-0 h-24 bg-gradient-to-b from-transparent via-blue-500/25 to-transparent pointer-events-none animate-[scan_3.5s_linear_infinite]" style={{ top: 0 }} />
+        {/* Neon-blue horizontal scanning line */}
+        {isScanning && !error && (
+          <div className="absolute inset-x-0 h-[2.5px] bg-cyan-400 shadow-[0_0_12px_#22d3ee,0_0_24px_#0891b2] pointer-events-none animate-scan-line" />
         )}
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes scan {
+        @keyframes scan-line {
           0% {
             top: 0%;
-            transform: translateY(-100%);
-            opacity: 0;
           }
-          10% {
-            opacity: 1;
-          }
-          90% {
-            opacity: 1;
+          50% {
+            top: 100%;
           }
           100% {
-            top: 100%;
-            transform: translateY(0%);
-            opacity: 0;
+            top: 0%;
           }
+        }
+        .animate-scan-line {
+          animation: scan-line 4s linear infinite;
+        }
+        @keyframes pulse-fast {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.8; }
+        }
+        .animate-pulse-fast {
+          animation: pulse-fast 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
       `}} />
     </div>

@@ -1,9 +1,28 @@
 /// <reference types="vite/client" />
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Activity, CloudSun, MapPin, Wind, Info, Plus, Minus, Compass } from 'lucide-react';
 
-const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+const API_KEY =
+  (process.env as any).GOOGLE_MAPS_PLATFORM_KEY ||
+  import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
+  (import.meta as any).env?.VITE_GOOGLE_MAPS_PLATFORM_KEY ||
+  '';
+
+const isValidKey = (key: string): boolean => {
+  if (!key) return false;
+  const cleanKey = key.trim();
+  if (cleanKey === '' || 
+      cleanKey.toLowerCase() === 'undefined' || 
+      cleanKey.toLowerCase() === 'null' ||
+      cleanKey.includes('YOUR_') || 
+      cleanKey.includes('PLACEHOLDER') ||
+      cleanKey === 'AIzaSy'
+  ) {
+    return false;
+  }
+  return cleanKey.length > 5;
+};
 
 // Pre-defined locations around Jakarta to create a high-fidelity environment
 const INITIAL_STATIONS = [
@@ -12,6 +31,17 @@ const INITIAL_STATIONS = [
   { id: 'barat', name: 'Stasiun Kebon Jeruk (Barat)', lat: -6.1683, lng: 106.7588, aqi: 68, status: 'Sedang' },
   { id: 'utara', name: 'Stasiun Ancol (Utara)', lat: -6.1261, lng: 106.8416, aqi: 82, status: 'Sedang' },
   { id: 'timur', name: 'Stasiun Halim (Timur)', lat: -6.2588, lng: 106.8833, aqi: 96, status: 'Sedang' }
+];
+
+const LANDMARKS = [
+  { name: 'Monumen Nasional (Monas)', lat: -6.1754, lng: 106.8272 },
+  { name: 'Bundaran HI', lat: -6.1950, lng: 106.8231 },
+  { name: 'Gelora Bung Karno', lat: -6.2183, lng: 106.8018 },
+  { name: 'Sarinah', lat: -6.1882, lng: 106.8241 },
+  { name: 'Sudirman Boulevard', lat: -6.2120, lng: 106.8160 },
+  { name: 'Kota Tua Historic', lat: -6.1376, lng: 106.8144 },
+  { name: 'Halim Airport Zone', lat: -6.2650, lng: 106.8900 },
+  { name: 'Taman Impian Ancol', lat: -6.1180, lng: 106.8300 }
 ];
 
 const lightMapStyle = [
@@ -48,6 +78,39 @@ export default function DashboardMap({
   const [selectedStation, setSelectedStation] = useState<typeof INITIAL_STATIONS[0] | null>(INITIAL_STATIONS[0]);
   const [center, setCenter] = useState(defaultCenter);
   const [zoom, setZoom] = useState(11.5);
+
+  // Error recovery & simulation states
+  const hasKey = isValidKey(API_KEY);
+  const [useSimulation, setUseSimulation] = useState(!hasKey);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
+  const [showKeyInstructions, setShowKeyInstructions] = useState(false);
+
+  // Drag-to-pan implementation for Simulation Map
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  // Intercept global uncaught script errors specifically targeting Google Maps script load blockages
+  useEffect(() => {
+    const handleGlobalError = (event: ErrorEvent | Event) => {
+      const msg = (event as any).message || '';
+      const src = (event as any).filename || '';
+      if (
+        msg.toLowerCase().includes('google') ||
+        msg.toLowerCase().includes('maps') ||
+        msg.toLowerCase().includes('quota') ||
+        msg.toLowerCase().includes('script error') ||
+        src.includes('maps.googleapis.com')
+      ) {
+        console.warn("[DashboardMap] Intercepted Maps Quota or Script Blockage, auto-recovering silently to Simulation Matrix...");
+        setQuotaExceeded(true);
+        setUseSimulation(true);
+      }
+    };
+
+    window.addEventListener('error', handleGlobalError, true);
+    return () => window.removeEventListener('error', handleGlobalError, true);
+  }, []);
 
   // Adjust stations dynamically when user location is detected
   useEffect(() => {
@@ -102,25 +165,87 @@ export default function DashboardMap({
     }
   }, [stations, selectedStation?.id]);
 
-  if (!API_KEY) {
-    return (
-      <div className={`w-full h-full flex flex-col items-center justify-center p-8 text-center transition-colors duration-300 ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
-        <div className={`p-4 rounded-xl shadow-sm mb-4 border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-          <p className="text-xs font-black text-blue-500 uppercase tracking-widest">Maps API Key Required</p>
-        </div>
-        <p className="text-[10px] text-slate-400 max-w-[200px] leading-relaxed">
-          Set VITE_GOOGLE_MAPS_API_KEY in secrets to view interactive real-time telemetry.
-        </p>
-      </div>
-    );
-  }
-
   // Color helper based on AQI to match pulses
   const getStationColor = (aqi: number) => {
     if (aqi <= 50) return { ring: 'bg-emerald-500/35 ring-emerald-500/20', dot: 'bg-emerald-500', text: 'text-emerald-500', statusColor: 'bg-emerald-100 text-emerald-800' };
     if (aqi <= 100) return { ring: 'bg-amber-500/35 ring-amber-500/20', dot: 'bg-amber-500', text: 'text-amber-500', statusColor: 'bg-amber-100 text-amber-800' };
     return { ring: 'bg-rose-500/35 ring-rose-500/20', dot: 'bg-rose-500', text: 'text-rose-500', statusColor: 'bg-rose-100 text-rose-800' };
   };
+
+  // Convert real geographic Lat/Lng coords into local CSS positioning relative to current center & zoom level
+  const getRelativePosition = (lat: number, lng: number) => {
+    const latDiff = lat - center.lat;
+    const lngDiff = lng - center.lng;
+    
+    // Dynamic math grid scale factor mapping
+    const scale = Math.pow(2, zoom - 11.5) * 4500;
+    
+    return {
+      x: 50 + (lngDiff * scale),
+      y: 50 - (latDiff * 1.05 * scale) // Minor Mercator height projection multiplier
+    };
+  };
+
+  // Pan functions with custom mouse boundary limits
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!useSimulation) return;
+    setIsDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !useSimulation) return;
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+
+    const scale = Math.pow(2, zoom - 11.5) * 450000;
+    const latChange = dy / scale;
+    const lngChange = -dx / scale;
+
+    setCenter(prev => ({
+      lat: Math.max(-6.5, Math.min(-5.9, prev.lat + latChange)),
+      lng: Math.max(106.5, Math.min(107.2, prev.lng + lngChange))
+    }));
+
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1 && useSimulation) {
+      setIsDragging(true);
+      setDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || e.touches.length !== 1 || !useSimulation) return;
+    const dx = e.touches[0].clientX - dragStart.x;
+    const dy = e.touches[0].clientY - dragStart.y;
+
+    const scale = Math.pow(2, zoom - 11.5) * 450000;
+    const latChange = dy / scale;
+    const lngChange = -dx / scale;
+
+    setCenter(prev => ({
+      lat: Math.max(-6.5, Math.min(-5.9, prev.lat + latChange)),
+      lng: Math.max(106.5, Math.min(107.2, prev.lng + lngChange))
+    }));
+
+    setDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+  };
+
+  const toggleManualMode = (targetSim: boolean) => {
+    if (!targetSim && !hasKey) {
+      setShowKeyInstructions(true);
+      return;
+    }
+    setUseSimulation(targetSim);
+  };
+
 
   return (
     <div className="w-full h-full relative group" id="pollution-map-container">
@@ -135,6 +260,7 @@ export default function DashboardMap({
           gestureHandling={'greedy'}
           disableDefaultUI={true}
           mapId={'aeroscan-pollution-map'}
+          internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
           options={{
             styles: darkMode ? darkMapStyle : lightMapStyle,
             disableDefaultUI: true,
@@ -156,6 +282,15 @@ export default function DashboardMap({
                 {/* Advanced Live Animated Marker */}
                 <div className="relative flex flex-col items-center cursor-pointer group/marker transform hover:scale-110 active:scale-95 transition-all duration-300">
                   
+                  {/* Concentric Pulsing Radar Circles for Live Sync Loop */}
+                  {isSelected && (
+                    <>
+                      <div className={`absolute w-16 h-16 rounded-full ${colors.ring} animate-ping opacity-60 pointer-events-none`} style={{ animationDuration: '2.4s' }} />
+                      <div className={`absolute w-12 h-12 rounded-full ${colors.ring} animate-ping opacity-45 pointer-events-none`} style={{ animationDuration: '1.6s' }} />
+                      <div className={`absolute w-8 h-8 rounded-full ${colors.ring} animate-ping opacity-30 pointer-events-none`} style={{ animationDuration: '0.8s' }} />
+                    </>
+                  )}
+
                   {/* Real-time Indicator Wave / Glow Background */}
                   <div className={`absolute w-10 h-10 rounded-full ${colors.ring} animate-ping opacity-60 pointer-events-none`} />
 
@@ -228,10 +363,10 @@ export default function DashboardMap({
       </div>
 
       {/* Floating Station Info Pane & Global Air Quality State */}
-      <div className={`absolute bottom-4 right-4 md:bottom-5 md:right-5 w-76 max-w-[calc(100%-2rem)] flex flex-col gap-2.5 p-3.5 rounded-[22px] border shadow-2xl transition-all duration-300 backdrop-blur-xl z-20 ${
+      <div className={`absolute bottom-4 right-4 md:bottom-5 md:right-5 w-76 max-w-[calc(100%-2rem)] flex flex-col gap-2.5 p-3.5 rounded-[22px] border shadow-2xl transition-all duration-300 backdrop-blur-md z-20 ${
         darkMode 
-          ? 'bg-slate-950/90 border-slate-800 text-slate-100 shadow-slate-950/50' 
-          : 'bg-white/95 border-slate-200/50 text-slate-900 shadow-slate-200/40'
+          ? 'bg-slate-950/90 border-slate-800 text-slate-100/95 shadow-slate-950/50' 
+          : 'bg-white/90 border-slate-200/50 text-slate-900 shadow-slate-200/40'
       }`}>
         {/* Top Header Row with status */}
         <div className="flex items-center justify-between gap-2 border-b pb-2 transition-colors border-slate-100 dark:border-slate-800">
