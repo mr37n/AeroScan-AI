@@ -1,4 +1,4 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Activity } from 'lucide-react';
 
 const data = [
@@ -11,32 +11,34 @@ const data = [
   { day: 'Sun', pm25: 11, pm10: 17, aqi: 42 },
 ];
 
-export default function PollutionChart() {
+export default function PollutionChart({ darkMode = false, userCity = "Jakarta" }: { darkMode?: boolean; userCity?: string }) {
   return (
-    <div className="w-full bg-white p-8 md:p-12" id="historical-chart-container">
+    <div className={`w-full transition-all duration-300 p-8 md:p-12 ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-white text-slate-900'}`} id="historical-chart-container">
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
         <div>
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-slate-50 border border-slate-100 rounded-lg mb-3">
+          <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-lg mb-3 border transition-colors ${darkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
             <Activity size={10} className="text-blue-500" />
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Analytics Dashboard</span>
+            <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest">Analytics Dashboard</span>
           </div>
-          <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-none mb-2">Tren Polusi Udara Mingguan</h3>
-          <p className="text-xs text-slate-400 font-medium max-w-sm">Visualisasi data PM2.5 dan Indeks AQI selama 7 hari terakhir berdasarkan pemindaian satelit dan kamera.</p>
+          <h3 className={`text-base sm:text-lg font-black tracking-tight leading-none mb-2 transition-colors ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>Tren Polusi Udara Mingguan</h3>
+          <p className="text-xs text-slate-400 font-medium max-w-sm">
+            Visualisasi data PM2.5 dan Indeks AQI selama 7 hari terakhir di wilayah <strong className={darkMode ? 'text-slate-200' : 'text-slate-700'}>{userCity}</strong> berdasarkan pemindaian satelit dan kamera.
+          </p>
         </div>
-        <div className="flex gap-8 items-center bg-slate-50 px-6 py-4 rounded-2xl border border-slate-100">
+        <div className={`flex gap-8 items-center px-6 py-4 rounded-2xl border transition-colors ${darkMode ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
           <div className="flex flex-col gap-1">
             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Primary</span>
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-              <span className="text-xs font-bold text-slate-700">PM2.5</span>
+              <span className={`text-xs font-bold transition-colors ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>PM2.5</span>
             </div>
           </div>
-          <div className="w-px h-6 bg-slate-200" />
+          <div className={`w-px h-6 ${darkMode ? 'bg-slate-800' : 'bg-slate-200'}`} />
           <div className="flex flex-col gap-1">
             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Secondary</span>
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.5)]" />
-              <span className="text-xs font-bold text-slate-700">AQI Index</span>
+              <span className={`text-xs font-bold transition-colors ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>AQI Index</span>
             </div>
           </div>
         </div>
@@ -55,7 +57,7 @@ export default function PollutionChart() {
                 <stop offset="95%" stopColor="#fb923c" stopOpacity={0}/>
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#E2E8F0" />
+            <CartesianGrid strokeDasharray="6 6" vertical={false} stroke={darkMode ? '#1e293b' : '#E2E8F0'} />
             <XAxis 
               dataKey="day" 
               axisLine={false} 
@@ -71,11 +73,12 @@ export default function PollutionChart() {
             <Tooltip 
               contentStyle={{ 
                 borderRadius: '20px', 
-                border: '1px solid #E2E8F0', 
+                border: darkMode ? '1px solid #334155' : '1px solid #E2E8F0', 
+                backgroundColor: darkMode ? '#0f172a' : '#FFFFFF',
                 boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
                 padding: '12px 16px'
               }}
-              itemStyle={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}
+              itemStyle={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: darkMode ? '#e2e8f0' : '#1e293b' }}
               labelStyle={{ fontSize: '10px', fontWeight: 900, marginBottom: '4px', color: '#94a3b8' }}
             />
             <Area 

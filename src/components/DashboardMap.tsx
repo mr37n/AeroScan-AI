@@ -34,10 +34,37 @@ const darkMapStyle = [
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#030712" }] }
 ];
 
-export default function DashboardMap({ darkMode = false }: { darkMode?: boolean }) {
+export default function DashboardMap({ 
+  darkMode = false, 
+  userCoords, 
+  userCity 
+}: { 
+  darkMode?: boolean;
+  userCoords?: { lat: number; lng: number } | null;
+  userCity?: string;
+}) {
   const defaultCenter = { lat: -6.1850, lng: 106.8250 };
   const [stations, setStations] = useState(INITIAL_STATIONS);
   const [selectedStation, setSelectedStation] = useState<typeof INITIAL_STATIONS[0] | null>(INITIAL_STATIONS[0]);
+
+  // Adjust stations dynamically when user location is detected
+  useEffect(() => {
+    if (userCoords) {
+      const label = userCity || 'Anda';
+      const dynamicStations = [
+        { id: 'pusat', name: `Stasiun ${label} Pusat`, lat: userCoords.lat, lng: userCoords.lng, aqi: 48, status: 'Baik' },
+        { id: 'selatan', name: `Stasiun ${label} Selatan`, lat: userCoords.lat - 0.015, lng: userCoords.lng, aqi: 122, status: 'Tidak Sehat' },
+        { id: 'barat', name: `Stasiun ${label} Barat`, lat: userCoords.lat, lng: userCoords.lng - 0.015, aqi: 68, status: 'Sedang' },
+        { id: 'utara', name: `Stasiun ${label} Utara`, lat: userCoords.lat + 0.015, lng: userCoords.lng, aqi: 82, status: 'Sedang' },
+        { id: 'timur', name: `Stasiun ${label} Timur`, lat: userCoords.lat, lng: userCoords.lng + 0.015, aqi: 96, status: 'Sedang' }
+      ];
+      setStations(dynamicStations);
+      setSelectedStation(dynamicStations[0]);
+    } else {
+      setStations(INITIAL_STATIONS);
+      setSelectedStation(INITIAL_STATIONS[0]);
+    }
+  }, [userCoords, userCity]);
 
   // Simulate real-time sensor updates/fluctuations to make the map markers alive
   useEffect(() => {
@@ -95,8 +122,8 @@ export default function DashboardMap({ darkMode = false }: { darkMode?: boolean 
     <div className="w-full h-full relative group" id="pollution-map-container">
       <APIProvider apiKey={API_KEY}>
         <Map
-          defaultCenter={defaultCenter}
-          defaultZoom={11.5}
+          center={userCoords || defaultCenter}
+          zoom={userCoords ? 12 : 11.5}
           gestureHandling={'greedy'}
           disableDefaultUI={true}
           mapId={'aeroscan-pollution-map'}
@@ -148,55 +175,70 @@ export default function DashboardMap({ darkMode = false }: { darkMode?: boolean 
       </APIProvider>
 
       {/* Floating Station Info Pane & Global Air Quality State */}
-      <div className={`absolute bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-[26px] border shadow-2xl transition-all duration-300 backdrop-blur-xl ${
+      <div className={`absolute bottom-4 right-4 md:bottom-5 md:right-5 w-76 max-w-[calc(100%-2rem)] flex flex-col gap-2.5 p-3.5 rounded-[22px] border shadow-2xl transition-all duration-300 backdrop-blur-xl z-20 ${
         darkMode 
-          ? 'bg-slate-950/85 border-slate-800 text-slate-100 shadow-slate-950/40' 
-          : 'bg-white/90 border-slate-200/60 text-slate-900 shadow-slate-200/50'
+          ? 'bg-slate-950/90 border-slate-800 text-slate-100 shadow-slate-950/50' 
+          : 'bg-white/95 border-slate-200/50 text-slate-900 shadow-slate-200/40'
       }`}>
-        {/* Left Side: Real-time Telemetry detail */}
-        <div className="flex items-center gap-3.5">
-          <div className="relative">
-            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
-              <Wind size={18} className="animate-pulse" />
+        {/* Top Header Row with status */}
+        <div className="flex items-center justify-between gap-2 border-b pb-2 transition-colors border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
+                <Wind size={14} className="animate-pulse" />
+              </div>
+              <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 border border-white dark:border-slate-950 ring-1 ring-emerald-500/20 animate-pulse" />
             </div>
-            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white ring-2 ring-emerald-500/20 animate-pulse" />
+            <div>
+              <div className="flex items-center gap-1">
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Sensor Aktif</span>
+                <span className="text-[7px] font-black uppercase text-blue-500 px-1.5 py-0.2 bg-blue-500/10 rounded border border-blue-500/20 select-none animate-pulse">Live</span>
+              </div>
+              <p className="text-[11px] font-black tracking-tight leading-tight mt-0.5 truncate max-w-[130px]" title={selectedStation?.name}>
+                {selectedStation ? selectedStation.name : 'Jakarta Core'}
+              </p>
+            </div>
           </div>
+          <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider border select-none ${
+            darkMode ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-150 text-slate-500'
+          }`}>
+            ID
+          </span>
+        </div>
 
-          <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Sensor Aktif</span>
-              <span className="text-[8px] font-black uppercase text-blue-500 px-1.5 py-0.5 bg-blue-500/10 rounded border border-blue-500/20 select-none animate-pulse">Live</span>
+        {/* Center AQI and Air category */}
+        <div className="flex items-center justify-between py-0.5">
+          <div className="flex flex-col">
+            <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider leading-none">Kualitas Udara</span>
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <span className={`w-2 h-2 rounded-full ${getStationColor(selectedStation?.aqi || 50).dot} animate-pulse`} />
+              <span className={`text-[11px] font-extrabold leading-none ${getStationColor(selectedStation?.aqi || 50).text}`}>
+                {selectedStation?.status || '--'}
+              </span>
             </div>
-            <p className="text-[13px] font-extrabold tracking-tight leading-none">
-              {selectedStation ? selectedStation.name : 'Jakarta Core'}
-            </p>
-            <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1.5">
-              <span>Sensor: AQI <strong className={getStationColor(selectedStation?.aqi || 50).text}>{selectedStation?.aqi || '--'}</strong> ({selectedStation?.status || '--'})</span>
-              <span>•</span>
-              <span className="font-mono text-[9px]">Uptodate</span>
-            </p>
+          </div>
+          <div className="flex items-baseline gap-0.5">
+            <span className={`text-2xl font-black tracking-tighter leading-none ${getStationColor(selectedStation?.aqi || 50).text}`}>
+              {selectedStation?.aqi || '--'}
+            </span>
+            <span className="text-[8px] font-black text-slate-450 uppercase tracking-widest leading-none">AQI</span>
           </div>
         </div>
 
-        {/* Right Side: Quick Action & Selector list */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={`text-[8.5px] font-black px-2.5 py-1.5 rounded-xl uppercase tracking-wider border select-none ${
-            darkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200/40 text-slate-600'
-          }`}>
-            Jakarta, ID
-          </span>
-
+        {/* Bottom Switch button controls */}
+        <div className="flex items-center justify-between border-t pt-2 border-slate-100 dark:border-slate-800">
+          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest select-none">Stasiun</span>
           <div className="flex gap-1">
             {stations.map(station => (
               <button
                 key={station.id}
                 onClick={() => setSelectedStation(station)}
-                className={`w-7 h-7 rounded-lg text-[9px] font-black transition-all duration-200 border flex items-center justify-center ${
+                className={`w-6 h-6 rounded-md text-[8.5px] font-black transition-all duration-200 border flex items-center justify-center ${
                   selectedStation?.id === station.id
                     ? 'bg-blue-600 border-blue-500 text-white scale-105 shadow-md shadow-blue-500/20'
                     : darkMode
-                      ? 'bg-slate-900 border-slate-800 hover:bg-slate-800 text-slate-400'
-                      : 'bg-white border-slate-150 hover:bg-slate-50 text-slate-500'
+                      ? 'bg-slate-900 border-slate-800 hover:bg-slate-850 text-slate-400'
+                      : 'bg-white border-slate-200/60 hover:bg-slate-50 text-slate-500'
                 }`}
                 title={station.name}
               >

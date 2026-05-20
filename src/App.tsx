@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Wind, 
@@ -12,6 +12,7 @@ import {
   BarChart3, 
   CloudSun, 
   Map as MapIcon, 
+  MapPin,
   Info, 
   Settings, 
   X, 
@@ -31,6 +32,40 @@ export default function App() {
   const [denseMapData, setDenseMapData] = useState(false);
   const [saveLocalHistory, setSaveLocalHistory] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+
+  // Real-time device coordinate geocoding status values
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [userCity, setUserCity] = useState<string>('Jakarta');
+  const [isLocating, setIsLocating] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      setIsLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserCoords({ lat: latitude, lng: longitude });
+          setIsLocating(false);
+          
+          // Request real-world reverse name from free public Nominatim lookup api
+          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=12`)
+            .then(res => res.json())
+            .then(data => {
+              const city = data.address?.city || data.address?.town || data.address?.suburb || data.address?.municipality || data.address?.region || data.address?.state || 'Jakarta';
+              setUserCity(city);
+            })
+            .catch(() => {
+              setUserCity('Lokasi Anda');
+            });
+        },
+        (error) => {
+          console.error("Geolocation status error:", error);
+          setIsLocating(false);
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+      );
+    }
+  }, []);
 
   return (
     <div className={`min-h-screen font-sans selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden transition-colors duration-300 ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-[#F1F5F9] text-slate-900'}`}>
@@ -121,6 +156,17 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* GPS Lock Dynamic Telemetry Badge */}
+            <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[9px] font-black transition-all ${
+              darkMode 
+                ? 'bg-slate-900 border-slate-850 text-slate-400' 
+                : 'bg-slate-100/80 border-slate-200/50 text-slate-650'
+            }`}>
+              <MapPin size={11} className={`${isLocating ? 'animate-bounce text-amber-500' : 'text-blue-500'}`} />
+              <span className="opacity-60 uppercase tracking-widest text-[8px]">GPS:</span>
+              <span className="text-blue-600 dark:text-blue-400 font-extrabold tracking-tight">{userCity}</span>
+            </div>
+
             <button
               onClick={() => setIsSettingsOpen(true)}
               className={`p-2 rounded-lg transition-all active:scale-95 border flex items-center justify-center shadow-sm relative group ${darkMode ? 'bg-slate-800 border-slate-700/80 hover:bg-slate-750 text-slate-100' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200/60'}`}
@@ -169,7 +215,7 @@ export default function App() {
                     <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Local Forecast</h3>
                   </div>
                   <div className={`rounded-[36px] overflow-hidden h-[420px] transition-all duration-300 border ${darkMode ? 'border-slate-800 bg-slate-900 shadow-2xl shadow-slate-950/20' : 'border-white bg-white shadow-2xl shadow-slate-200'}`}>
-                    <WeatherForecast darkMode={darkMode} className="h-full p-6 md:p-7 flex flex-col justify-between" />
+                    <WeatherForecast darkMode={darkMode} className="h-full p-6 md:p-7 flex flex-col justify-between" userCity={userCity} />
                   </div>
                 </div>
               </div>
@@ -183,7 +229,7 @@ export default function App() {
                   <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Geo Overlay</h3>
                 </div>
                 <div className={`rounded-[36px] overflow-hidden h-[480px] w-full transition-all duration-300 border ${darkMode ? 'border-slate-800 bg-slate-900 shadow-2xl shadow-slate-950/20' : 'border-white bg-slate-100 shadow-2xl shadow-slate-205'}`}>
-                  <DashboardMap darkMode={darkMode} />
+                  <DashboardMap darkMode={darkMode} userCoords={userCoords} userCity={userCity} />
                 </div>
               </div>
             </motion.div>
@@ -199,8 +245,8 @@ export default function App() {
               className="flex flex-col gap-8"
             >
               {/* Analytics Center Dashboard */}
-              <div className="rounded-[36px] overflow-hidden shadow-2xl shadow-slate-200 border border-white">
-                <PollutionChart />
+              <div className={`rounded-[36px] overflow-hidden shadow-2xl border transition-colors ${darkMode ? 'shadow-slate-950/25 border-slate-800' : 'shadow-slate-200 border-white'}`}>
+                <PollutionChart darkMode={darkMode} userCity={userCity} />
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -275,65 +321,113 @@ export default function App() {
             >
               {/* Health Advisory left panel */}
               <div className="lg:col-span-8 flex flex-col">
-                <div className="bg-white p-8 md:p-12 rounded-[40px] border border-slate-100 shadow-2xl relative overflow-hidden flex flex-col justify-between h-full">
+                <div className={`p-8 md:p-12 rounded-[40px] border shadow-2xl relative overflow-hidden flex flex-col justify-between h-full transition-all duration-300 ${
+                  darkMode 
+                    ? 'bg-slate-900 border-slate-800 text-slate-100 shadow-slate-950/40' 
+                    : 'bg-white border-slate-100 text-slate-900'
+                }`}>
                   <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
                   <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
 
                   <div>
                     {/* Header with modern left accent border to replace floating details and provide clean visual hierarchy */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 border-b border-slate-100 pb-8 relative z-10">
+                    <div className={`flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 border-b pb-8 relative z-10 transition-colors ${
+                      darkMode ? 'border-slate-800' : 'border-slate-100'
+                    }`}>
                       <div className="flex items-center gap-4.5 border-l-4 border-amber-500 pl-4">
-                        <div className="w-14 h-14 bg-emerald-50 rounded-[18px] flex items-center justify-center text-emerald-600 border border-emerald-100/80 shadow-sm shrink-0">
+                        <div className={`w-14 h-14 rounded-[18px] flex items-center justify-center border shadow-sm shrink-0 transition-colors ${
+                          darkMode 
+                            ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900/50' 
+                            : 'bg-emerald-50 text-emerald-600 border-emerald-100/80'
+                        }`}>
                           <ShieldCheck size={28} />
                         </div>
                         <div>
-                          <span className="text-[9.5px] font-black text-emerald-600 uppercase tracking-widest leading-none block">Safe Air Quality</span>
-                          <h3 className="text-sm sm:text-base md:text-lg font-black text-slate-900 tracking-tight mt-1 leading-tight">Health Advisory & Rekomendasi</h3>
+                          <span className={`text-[9.5px] font-black uppercase tracking-widest block leading-none ${
+                            darkMode ? 'text-emerald-400' : 'text-emerald-600'
+                          }`}>Safe Air Quality</span>
+                          <h3 className={`text-sm sm:text-base md:text-lg font-black tracking-tight mt-1 leading-tight transition-colors ${
+                            darkMode ? 'text-slate-100' : 'text-slate-900'
+                          }`}>Health Advisory & Rekomendasi</h3>
                         </div>
                       </div>
-                      <div className="bg-emerald-50 px-4 py-3 rounded-2xl border border-emerald-100/50 self-start md:self-auto shrink-0 flex flex-col justify-center">
-                        <span className="text-[8.5px] font-black text-emerald-600 uppercase tracking-widest block leading-none mb-1">Status Kualitas Udara</span>
-                        <span className="text-sm font-extrabold text-emerald-700 leading-none">Terpantau Sehat</span>
+                      <div className={`px-4 py-3 rounded-2xl border self-start md:self-auto shrink-0 flex flex-col justify-center transition-colors ${
+                        darkMode 
+                          ? 'bg-emerald-950/20 border-emerald-900/30' 
+                          : 'bg-emerald-50 border-emerald-100/50'
+                      }`}>
+                        <span className={`text-[8.5px] font-black uppercase tracking-widest block leading-none mb-1 ${
+                          darkMode ? 'text-emerald-450 text-emerald-400/80' : 'text-emerald-600'
+                        }`}>Status Kualitas Udara</span>
+                        <span className={`text-sm font-extrabold leading-none ${
+                          darkMode ? 'text-emerald-400' : 'text-emerald-700'
+                        }`}>Terpantau Sehat</span>
                       </div>
                     </div>
 
-                    <p className="text-sm text-slate-500 font-medium leading-relaxed mb-8 max-w-2xl relative z-10">
-                      Berdasarkan pindaian sensor AeroScan AI di wilayah Jakarta saat ini, konsentrasi partikulat PM2.5 berada pada tingkat rendah. Indeks kualitas udara tergolong aman untuk seluruh lapisan masyarakat.
+                    <p className={`text-sm font-medium leading-relaxed mb-8 max-w-2xl relative z-10 transition-colors ${
+                      darkMode ? 'text-slate-400' : 'text-slate-500'
+                    }`}>
+                      Berdasarkan pindaian sensor AeroScan AI di wilayah <strong className={darkMode ? 'text-blue-400 font-extrabold' : 'text-blue-600 font-black'}>{userCity}</strong> saat ini, konsentrasi partikulat PM2.5 berada pada tingkat rendah. Indeks kualitas udara tergolong aman untuk seluruh lapisan masyarakat.
                     </p>
                   </div>
 
                   {/* Symmetrical 3-Column CSS Grid with equal distribution and spacing */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10 w-full">
                     {/* Card 1 */}
-                    <div className="bg-slate-50/60 p-7 rounded-[24px] border border-slate-100/80 flex flex-col gap-4 transform transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-100/80 hover:-translate-y-0.5">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-50/85 text-emerald-600 flex items-center justify-center text-sm font-black border border-emerald-100/40 shrink-0">
+                    <div className={`p-7 rounded-[24px] border flex flex-col gap-4 transform transition-all duration-300 ${
+                      darkMode 
+                        ? 'bg-slate-950/50 border-slate-850 hover:bg-slate-950 hover:border-slate-800' 
+                        : 'bg-slate-50/60 border-slate-100/80 hover:bg-white hover:shadow-xl hover:shadow-slate-100/80 hover:-translate-y-0.5'
+                    }`}>
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-black border shrink-0 ${
+                        darkMode 
+                          ? 'bg-emerald-950/30 text-emerald-400 border-emerald-900/30' 
+                          : 'bg-emerald-50/85 text-emerald-600 border-emerald-100/40'
+                      }`}>
                         ✓
                       </div>
                       <div className="flex flex-col gap-2">
-                        <h4 className="text-sm font-bold text-slate-800 tracking-tight">Aktivitas Luar Ruangan</h4>
-                        <p className="text-xs text-slate-500 font-semibold leading-relaxed">Diperbolehkan sepenuhnya tanpa pembatasan, sangat disarankan untuk berolahraga pagi atau beraktivitas.</p>
+                        <h4 className={`text-sm font-bold tracking-tight transition-colors ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>Aktivitas Luar Ruangan</h4>
+                        <p className={`text-xs font-semibold leading-relaxed transition-colors ${darkMode ? 'text-slate-450 text-slate-400' : 'text-slate-500'}`}>Diperbolehkan sepenuhnya tanpa pembatasan, sangat disarankan untuk berolahraga pagi atau beraktivitas.</p>
                       </div>
                     </div>
 
                     {/* Card 2 */}
-                    <div className="bg-slate-50/60 p-7 rounded-[24px] border border-slate-100/80 flex flex-col gap-4 transform transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-100/80 hover:-translate-y-0.5">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-50/85 text-emerald-600 flex items-center justify-center text-sm font-black border border-emerald-100/40 shrink-0">
+                    <div className={`p-7 rounded-[24px] border flex flex-col gap-4 transform transition-all duration-300 ${
+                      darkMode 
+                        ? 'bg-slate-950/50 border-slate-850 hover:bg-slate-950 hover:border-slate-800' 
+                        : 'bg-slate-50/60 border-slate-100/80 hover:bg-white hover:shadow-xl hover:shadow-slate-100/80 hover:-translate-y-0.5'
+                    }`}>
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-black border shrink-0 ${
+                        darkMode 
+                          ? 'bg-emerald-950/30 text-emerald-400 border-emerald-900/30' 
+                          : 'bg-emerald-50/85 text-emerald-600 border-emerald-100/40'
+                      }`}>
                         ✓
                       </div>
                       <div className="flex flex-col gap-2">
-                        <h4 className="text-sm font-bold text-slate-800 tracking-tight">Sirkulasi Udara Rumah</h4>
-                        <p className="text-xs text-slate-500 font-semibold leading-relaxed">Buka ventilasi udara lebar-lebar untuk menjaga kesegaran hunian dan sirkulasi udara alami.</p>
+                        <h4 className={`text-sm font-bold tracking-tight transition-colors ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>Sirkulasi Udara Rumah</h4>
+                        <p className={`text-xs font-semibold leading-relaxed transition-colors ${darkMode ? 'text-slate-450 text-slate-400' : 'text-slate-500'}`}>Buka ventilasi udara lebar-lebar untuk menjaga kesegaran hunian dan sirkulasi udara alami.</p>
                       </div>
                     </div>
 
                     {/* Card 3 */}
-                    <div className="bg-slate-50/60 p-7 rounded-[24px] border border-slate-100/80 flex flex-col gap-4 transform transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-100/80 hover:-translate-y-0.5">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-50/85 text-emerald-600 flex items-center justify-center text-sm font-black border border-emerald-100/40 shrink-0">
+                    <div className={`p-7 rounded-[24px] border flex flex-col gap-4 transform transition-all duration-300 ${
+                      darkMode 
+                        ? 'bg-slate-950/50 border-slate-850 hover:bg-slate-950 hover:border-slate-800' 
+                        : 'bg-slate-50/60 border-slate-100/80 hover:bg-white hover:shadow-xl hover:shadow-slate-100/80 hover:-translate-y-0.5'
+                    }`}>
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-black border shrink-0 ${
+                        darkMode 
+                          ? 'bg-emerald-950/30 text-emerald-400 border-emerald-900/30' 
+                          : 'bg-emerald-50/85 text-emerald-600 border-emerald-100/40'
+                      }`}>
                         ✓
                       </div>
                       <div className="flex flex-col gap-2">
-                        <h4 className="text-sm font-bold text-slate-800 tracking-tight">Kelompok Sensitif</h4>
-                        <p className="text-xs text-slate-500 font-semibold leading-relaxed">Bagi penderita asma atau gangguan pernapasan, kondisi ini sangat aman untuk aktivitas normal luar ruangan.</p>
+                        <h4 className={`text-sm font-bold tracking-tight transition-colors ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>Kelompok Sensitif</h4>
+                        <p className={`text-xs font-semibold leading-relaxed transition-colors ${darkMode ? 'text-slate-450 text-slate-400' : 'text-slate-500'}`}>Bagi penderita asma atau gangguan pernapasan, kondisi ini sangat aman untuk aktivitas normal luar ruangan.</p>
                       </div>
                     </div>
                   </div>
@@ -342,42 +436,64 @@ export default function App() {
 
               {/* Sidebar on Health Hub for additional medical guides - Stretched to identical height */}
               <div className="lg:col-span-4 flex flex-col h-full">
-                <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-2xl flex flex-col gap-6 h-full justify-between">
+                <div className={`p-8 rounded-[40px] border shadow-2xl flex flex-col gap-6 h-full justify-between transition-all duration-300 ${
+                  darkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-100 text-slate-900'
+                }`}>
                   <div>
-                    <div className="flex items-center gap-3 border-b border-slate-100 pb-5 mb-5 shrink-0">
-                      <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center text-white">
+                    <div className={`flex items-center gap-3 border-b pb-5 mb-5 shrink-0 transition-colors ${
+                      darkMode ? 'border-slate-800' : 'border-slate-100'
+                    }`}>
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+                        darkMode ? 'bg-slate-850 text-blue-400 border border-slate-800' : 'bg-slate-900 text-white'
+                      }`}>
                         <Activity size={16} />
                       </div>
-                      <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider">Health Quick Tips</h4>
+                      <h4 className={`text-sm font-black uppercase tracking-wider transition-colors ${
+                        darkMode ? 'text-slate-200' : 'text-slate-900'
+                      }`}>Health Quick Tips</h4>
                     </div>
                     
                     <div className="flex flex-col gap-4">
                       {/* Tip 1 */}
-                      <div className="p-5 bg-blue-50/40 rounded-[22px] border border-blue-100/50 flex items-start gap-4 transition-all hover:bg-blue-50/70">
-                        <div className="p-3 bg-blue-100 text-blue-600 rounded-xl shrink-0">
+                      <div className={`p-5 rounded-[22px] border flex items-start gap-4 transition-all duration-300 ${
+                        darkMode 
+                          ? 'bg-slate-950/40 border-slate-850 hover:bg-slate-950' 
+                          : 'bg-blue-50/40 border-blue-100/50 hover:bg-blue-50/70'
+                      }`}>
+                        <div className={`p-3 rounded-xl shrink-0 transition-colors ${
+                          darkMode ? 'bg-blue-950/40 text-blue-400' : 'bg-blue-100 text-blue-600'
+                        }`}>
                           <Wind size={18} />
                         </div>
                         <div className="flex flex-col gap-1">
-                          <h5 className="text-xs font-bold text-slate-800">Penggunaan Masker</h5>
-                          <p className="text-[11px] text-slate-500 font-semibold leading-normal">Masker tidak wajib dalam kondisi saat ini, namun direkomendasikan jika berada di dekat area industri.</p>
+                          <h5 className={`text-xs font-bold transition-colors ${darkMode ? 'text-slate-350 text-slate-300' : 'text-slate-800'}`}>Penggunaan Masker</h5>
+                          <p className={`text-[11px] font-semibold leading-normal transition-colors ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Masker tidak wajib dalam kondisi saat ini, namun direkomendasikan jika berada di dekat area industri.</p>
                         </div>
                       </div>
 
                       {/* Tip 2 */}
-                      <div className="p-5 bg-orange-50/40 rounded-[22px] border border-orange-100/50 flex items-start gap-4 transition-all hover:bg-orange-50/70">
-                        <div className="p-3 bg-orange-100 text-orange-600 rounded-xl shrink-0">
+                      <div className={`p-5 rounded-[22px] border flex items-start gap-4 transition-all duration-300 ${
+                        darkMode 
+                          ? 'bg-slate-950/40 border-slate-850 hover:bg-slate-950' 
+                          : 'bg-orange-50/40 border-orange-100/50 hover:bg-orange-50/70'
+                      }`}>
+                        <div className={`p-3 rounded-xl shrink-0 transition-colors ${
+                          darkMode ? 'bg-orange-950/40 text-orange-400' : 'bg-orange-100 text-orange-600'
+                        }`}>
                           <CloudSun size={18} />
                         </div>
                         <div className="flex flex-col gap-1">
-                          <h5 className="text-xs font-bold text-slate-800">Hidrasi Cairan Tubuh</h5>
-                          <p className="text-[11px] text-slate-500 font-semibold leading-normal">Tetap konsumsi minimal 2 Liter air per hari karena suhu udara berawan cukup hangat (31°C).</p>
+                          <h5 className={`text-xs font-bold transition-colors ${darkMode ? 'text-slate-350 text-slate-300' : 'text-slate-800'}`}>Hidrasi Cairan Tubuh</h5>
+                          <p className={`text-[11px] font-semibold leading-normal transition-colors ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Tetap konsumsi minimal 2 Liter air per hari karena suhu udara berawan cukup hangat (31°C).</p>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Informational badge at the bottom of the sidebar to anchor the spacing */}
-                  <div className="mt-8 pt-6 border-t border-slate-100 flex items-center gap-3 text-slate-400">
+                  <div className={`mt-8 pt-6 border-t flex items-center gap-3 text-slate-400 transition-colors ${
+                    darkMode ? 'border-slate-800' : 'border-slate-100'
+                  }`}>
                     <ShieldCheck size={16} className="text-emerald-500 shrink-0" />
                     <span className="text-[10px] font-bold uppercase tracking-wider">Verified by health advisory board</span>
                   </div>

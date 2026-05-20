@@ -40,7 +40,7 @@ const WeatherIcon = ({ type, size = 24, animated = true }: { type: string, size?
   }
 };
 
-export default function WeatherForecast({ darkMode = false, className = "p-6 md:p-7 flex flex-col gap-6" }: { darkMode?: boolean, className?: string }) {
+export default function WeatherForecast({ darkMode = false, className = "p-6 md:p-7 flex flex-col gap-6", userCity = "Jakarta" }: { darkMode?: boolean, className?: string, userCity?: string }) {
   return (
     <div className={`w-full transition-all duration-300 ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-white text-slate-900'} ${className}`} id="weather-forecast-container">
       <div className={`flex items-center justify-between border-b pb-4 transition-colors ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
@@ -55,7 +55,7 @@ export default function WeatherForecast({ darkMode = false, className = "p-6 md:
         </div>
         <div className="text-right">
           <span className={`text-base sm:text-lg font-black tracking-tighter tabular-nums drop-shadow-sm leading-none block transition-colors ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>31°C</span>
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Jakarta, ID</p>
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{userCity}, ID</p>
         </div>
       </div>
 
