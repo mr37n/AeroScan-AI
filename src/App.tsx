@@ -127,9 +127,14 @@ export default function App() {
                 <circle cx="81" cy="63" r="3" fill="#38BDF8" stroke="#FFFFFF" strokeWidth="1" />
               </svg>
             </div>
-            <div className="flex items-center gap-1 select-none">
-              <span className={`font-black text-xs sm:text-base tracking-tight leading-none ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>AeroScan</span>
-              <span className="font-bold text-[8px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-500 border border-blue-500/20 uppercase tracking-wider leading-none">AI</span>
+            <div className="flex flex-col select-none leading-tight justify-center">
+              <div className="flex items-baseline gap-0.5 sm:gap-1">
+                <span className={`font-black text-xs sm:text-base tracking-tight leading-none ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>AeroScan</span>
+                <span className="font-black text-xs sm:text-base tracking-tight leading-none text-blue-500">AI</span>
+              </div>
+              <span className="text-[5.5px] sm:text-[7.5px] font-black tracking-[0.08em] sm:tracking-[0.1em] uppercase text-emerald-500" style={{ wordSpacing: '0.04em' }}>
+                AIR VISIBILITY INTELLIGENCE
+              </span>
             </div>
           </div>
 

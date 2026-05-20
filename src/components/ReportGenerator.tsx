@@ -228,13 +228,32 @@ export default function ReportGenerator({ userCity = "Jakarta", userCoords = nul
               <path d="M 9 55 V 68 C 9 82, 18 92, 32 92" fill="none" stroke="#2563EB" stroke-width="4.5" stroke-linecap="round" />
               <path d="M 68 92 C 82 92, 92 82, 92 68 V 55" fill="none" stroke="#2563EB" stroke-width="4.5" stroke-linecap="round" />
               <path d="M 92 45 V 32 C 92 18, 82 9, 68 9" fill="none" stroke="#2563EB" stroke-width="4.5" stroke-linecap="round" />
+              
+              <!-- RED SILHOUETTES: CITY SKYLINE (LEFT) & INDUSTRY (RIGHT) -->
+              <path 
+                d="M 11 63 V 49 H 17 V 63 M 18.5 63 V 35 L 23.5 30 V 63 M 24.5 63 V 41 L 28.5 39 V 63 M 31 63 V 47 H 35 V 63" 
+                fill="none" 
+                stroke="#F43F5E" 
+                stroke-width="3" 
+                stroke-linejoin="round" 
+                stroke-linecap="round"
+              />
+              <path 
+                d="M 64.5 63 V 58 H 70.5 V 63 M 71 63 V 38 H 73.5 V 63 M 76.5 63 V 38 H 79 V 63 M 80 63 C 80 53, 81.5 48, 84 48 H 88 C 90.5 48, 91.5 53, 91.5 63" 
+                fill="none" 
+                stroke="#F43F5E" 
+                stroke-width="3" 
+                stroke-linejoin="round" 
+                stroke-linecap="round"
+              />
+
               <line x1="8" y1="63" x2="92" y2="63" stroke="#0ea5e9" stroke-width="3" stroke-linecap="round" />
               <path d="M 19 63 A 31 31 0 0 1 81 63" fill="none" stroke="#0ea5e9" stroke-width="3" stroke-linecap="round" />
               <circle cx="50" cy="32" r="4.5" fill="#0ea5e9" stroke="#FFFFFF" stroke-width="1.5" />
             </svg>
-            <div>
-              <div style="font-size: 20px; font-weight: 900; letter-spacing: -0.5px; color: #1E293B; line-height: 1;">AeroScan <span style="font-size: 11px; font-weight: 800; background-color: #EFF6FF; color: #2563EB; padding: 2px 5px; border-radius: 5px; border: 1px solid #DBEAFE; margin-left: 2px;">AI</span></div>
-              <div style="font-size: 9px; font-weight: 800; color: #64748B; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 2px;">Air Visibility Intelligence</div>
+            <div style="display: flex; flex-direction: column; justify-content: center;">
+              <div style="font-size: 20px; font-weight: 950; letter-spacing: -0.5px; color: #0F172A; line-height: 1;">AeroScan <span style="color: #2563EB; font-weight: 950;">AI</span></div>
+              <div style="font-size: 8px; font-weight: 900; color: #10B981; letter-spacing: 0.8px; text-transform: uppercase; margin-top: 3px;">Air Visibility Intelligence</div>
             </div>
           </div>
           <div style="text-align: right;">
