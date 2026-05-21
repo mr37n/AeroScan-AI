@@ -189,10 +189,10 @@ export default function App() {
             </div>
             <div className="flex flex-col select-none leading-none">
               <div className="flex items-baseline gap-1">
-                <span className="font-bold text-[24px] text-black dark:text-white leading-none">AeroScan</span>
-                <span className="font-bold text-[24px] text-blue-600 leading-none">AI</span>
+                <span className="font-bold text-[18px] sm:text-[24px] text-black dark:text-white leading-none">AeroScan</span>
+                <span className="font-bold text-[18px] sm:text-[24px] text-blue-600 leading-none">AI</span>
               </div>
-              <span className="text-[12px] font-bold text-green-600 dark:text-green-500 mt-1">Air Visibility Intelligence</span>
+              <span className="text-[9px] sm:text-[12px] font-bold text-green-600 dark:text-green-500 mt-1 uppercase tracking-wider">Air Intelligence</span>
             </div>
           </div>
         </div>
@@ -284,7 +284,7 @@ export default function App() {
                   }`}
                 >
                   <Sliders size={18} />
-                  <span className="text-xs uppercase font-semibold tracking-wider">Dashboard</span>
+                  <span className="text-xs uppercase font-semibold tracking-wider">Scan Area</span>
                 </button>
 
                 <button
@@ -420,12 +420,12 @@ export default function App() {
             className={`w-full flex items-center gap-3.5 px-3 py-3 rounded-xl transition-all relative ${
               activeTab === 'dashboard'
                 ? (darkMode ? 'bg-blue-500/10 border-l-4 border-blue-500 text-blue-400 font-extrabold' : 'bg-blue-50 border-l-4 border-blue-500 text-blue-600 font-extrabold shadow-sm')
-                : (darkMode ? 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 border-l-4 border-transparent' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100 border-l-4 border-transparent')
+                : (darkMode ? 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 border-l-4 border-transparent' : 'text-slate-500 hover:bg-slate-900 hover:bg-slate-100 border-l-4 border-transparent')
             }`}
-            title="Dashboard"
+            title="Scan Area"
           >
             <Sliders size={18} className="shrink-0" />
-            {!isSidebarCollapsed && <span className="text-xs uppercase tracking-wider font-semibold">Dashboard</span>}
+            {!isSidebarCollapsed && <span className="text-xs uppercase tracking-wider font-semibold">Scan Area</span>}
           </button>
 
           <button

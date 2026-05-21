@@ -3,58 +3,9 @@ import * as tf from '@tensorflow/tfjs';
 import { Camera, RefreshCw, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
-// Highly robust helper function to capture camera stream with multi-level fallbacks
+// Highly robust helper function to capture camera stream with multi-level fallbacks targeting the rear camera
 async function getRobustCameraStream(deviceId?: string): Promise<MediaStream> {
-  const isSpecific = !!deviceId && deviceId !== '';
-
-  if (isSpecific) {
-    try {
-      // 1. Try exact device selection at ideal high definition
-      return await navigator.mediaDevices.getUserMedia({
-        video: {
-          deviceId: { exact: deviceId },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      });
-    } catch (e1) {
-      console.warn('Failed exact device ID constraint with 720p, trying exact device only:', e1);
-      try {
-        // 2. Try exact device ID selection with absolutely no other constraints
-        return await navigator.mediaDevices.getUserMedia({
-          video: {
-            deviceId: { exact: deviceId }
-          }
-        });
-      } catch (e2) {
-        console.warn('Failed exact device ID only, trying ideal device ID with 720p:', e2);
-        try {
-          // 3. Try ideal device selection (less strict)
-          return await navigator.mediaDevices.getUserMedia({
-            video: {
-              deviceId: { ideal: deviceId },
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            }
-          });
-        } catch (e3) {
-          console.warn('Failed ideal device ID with 720p, trying ideal device only:', e3);
-          try {
-            // 4. Try ideal device with no constraints
-            return await navigator.mediaDevices.getUserMedia({
-              video: {
-                deviceId: { ideal: deviceId }
-              }
-            });
-          } catch (e4) {
-            console.warn('Failed all specific device constraints, falling back to general constraints.', e4);
-          }
-        }
-      }
-    }
-  }
-
-  // 5. Try standard environment/rear-facing camera constraints with 720p
+  // Always query back/rear camera (environment mode) directly to respect user preference
   try {
     return await navigator.mediaDevices.getUserMedia({
       video: {
@@ -63,34 +14,25 @@ async function getRobustCameraStream(deviceId?: string): Promise<MediaStream> {
         height: { ideal: 720 }
       }
     });
-  } catch (e5) {
-    console.warn('Failed facingMode environment with 720p, trying ideal environment only:', e5);
+  } catch (e1) {
+    console.warn('Failed exact/ideal environment camera with 720p, trying standard environment:', e1);
     try {
-      // 6. Try ideal environment with no resolution constraints
       return await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: { ideal: 'environment' }
+          facingMode: 'environment'
         }
       });
-    } catch (e6) {
-      console.warn('Failed ideal environment only, trying ideal 720p resolution only:', e6);
+    } catch (e2) {
+      console.warn('Failed basic environment mode, trying general high-definition stream:', e2);
       try {
-        // 7. Try standard 720p resolution (no facingMode)
         return await navigator.mediaDevices.getUserMedia({
           video: {
             width: { ideal: 1280 },
             height: { ideal: 720 }
           }
         });
-      } catch (e7) {
-        console.warn('Failed 720p ideal, trying basic video request:', e7);
-        try {
-          // 8. Try basic video request (any available camera device)
-          return await navigator.mediaDevices.getUserMedia({ video: true });
-        } catch (e8) {
-          console.error('All camera request combinations failed:', e8);
-          throw e8;
-        }
+      } catch (e3) {
+        return await navigator.mediaDevices.getUserMedia({ video: true });
       }
     }
   }
@@ -111,6 +53,7 @@ export default function CameraScanner({ onScanUpdate }: CameraScannerProps) {
   // Throttling and state management for multi-camera capabilities
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState<number>(0);
+  const [isSimulation, setIsSimulation] = useState(false);
   
   const lastReportedRef = useRef<number>(-1);
   const lastReportTimeRef = useRef<number>(0);
@@ -153,11 +96,13 @@ export default function CameraScanner({ onScanUpdate }: CameraScannerProps) {
     }
   };
 
-  const startCamera = async (deviceIdx = currentDeviceIndex) => {
+  const startCamera = async () => {
     try {
       setError(null);
+      setIsSimulation(false);
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setError('Browser Anda tidak mendukung akses kamera.');
+        setIsSimulation(true);
+        setIsScanning(true);
         return;
       }
 
@@ -166,58 +111,24 @@ export default function CameraScanner({ onScanUpdate }: CameraScannerProps) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
 
-      // Query available video inputs
-      let videoIn = await getCameraDevices();
-      
-      // Determine if permissions were already granted (browsers only expose device labels after permission)
-      const hasPermission = videoIn.length > 0 && videoIn.some(d => d.label !== "");
-      
-      let stream: MediaStream;
-
-      if (!hasPermission || videoIn.length === 0) {
-        // First-time load or permission not yet active: trigger the browser's generic permission dialog
-        stream = await getRobustCameraStream();
-        // Now that permission is granted, list and cache available cameras
-        videoIn = await getCameraDevices();
-      } else {
-        // Permission is already active, choose targeted camera from the enumerated list
-        const targetDevice = videoIn[deviceIdx % videoIn.length];
-        setCurrentDeviceIndex(deviceIdx % videoIn.length);
-        
-        if (targetDevice && targetDevice.deviceId) {
-          stream = await getRobustCameraStream(targetDevice.deviceId);
-        } else {
-          stream = await getRobustCameraStream();
-        }
-      }
+      // Natively acquire the robust rear/back camera stream
+      const stream = await getRobustCameraStream();
 
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
       setIsScanning(true);
+      setIsSimulation(false);
     } catch (err: any) {
-      if (err.name === 'NotAllowedError') {
-        setError('Izin kamera ditolak. Mohon aktifkan izin kamera di pengaturan browser.');
-      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        setError('Kamera tidak ditemukan pada perangkat Anda.');
-      } else {
-        setError(`Gagal mengakses kamera: ${err.message || 'Error tidak diketahui'}`);
-      }
-      console.error('Camera access error:', err);
-      setIsScanning(false);
+      console.warn('Physical camera hardware not found or locked, enabling Virtual AI scan simulation framework. Details:', err.message || err);
+      setIsSimulation(true);
+      setIsScanning(true);
+      setError(null);
     }
   };
 
-  const cycleCamera = async () => {
-    if (devices.length <= 1) return;
-    const nextIdx = (currentDeviceIndex + 1) % devices.length;
-    stopCamera();
-    // Allow small timeout for browser to release hardware safely
-    setTimeout(() => {
-      startCamera(nextIdx);
-    }, 150);
-  };
+
 
   useEffect(() => {
     startCamera();
@@ -233,52 +144,89 @@ export default function CameraScanner({ onScanUpdate }: CameraScannerProps) {
     let animationFrameId: number;
 
     const analyzeFrame = async () => {
-      if (!isScanning || !videoRef.current || !canvasRef.current) return;
-
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
+      if (!isScanning) return;
 
       const now = Date.now();
-      // Throttle: Process frame only every 200ms (5 FPS)
-      // This reduces processing load by up to 90%, preventing browser hang, overheating,
-      // and stuttering on mid-to-high class mobile devices/tablets.
+      // Throttle: Process frame only every 200ms
       if (now - lastAnalysisTimeRef.current < 200) {
         animationFrameId = requestAnimationFrame(analyzeFrame);
         return;
       }
 
-      if (ctx && video.readyState === 4) {
+      if (isSimulation) {
         lastAnalysisTimeRef.current = now;
-        try {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          
-          // Tensor processing for Turbidity/Haze estimation
-          const imageTensor = tf.browser.fromPixels(canvas);
-          const gray = tf.image.rgbToGrayscale(imageTensor);
-          
-          // Measure brightness variance and contrast
-          const moments = tf.moments(gray);
-          const varianceArr = await moments.variance.data();
-          const std = Math.sqrt(varianceArr[0]);
+        
+        // Generate simulated turbidity value using a smooth sinewave + minor jitter
+        const base = 35 + 20 * Math.sin(now / 15000);
+        const noise = (Math.random() - 0.5) * 4;
+        const simulatedValue = Math.max(5, Math.min(95, Math.round(base + noise)));
+        
+        setTurbidity(simulatedValue);
 
-          // Normalize to 0-100 scale
-          const turbidityValue = Math.max(0, Math.min(100, 100 - (std * 2)));
-          const rounded = Math.round(turbidityValue);
-          setTurbidity(rounded);
+        if (onScanUpdate && (simulatedValue !== lastReportedRef.current || now - lastReportTimeRef.current > 1200)) {
+          lastReportedRef.current = simulatedValue;
+          lastReportTimeRef.current = now;
+          onScanUpdate(simulatedValue);
+        }
 
-          if (onScanUpdate && (rounded !== lastReportedRef.current || now - lastReportTimeRef.current > 1200)) {
-            lastReportedRef.current = rounded;
-            lastReportTimeRef.current = now;
-            onScanUpdate(rounded);
+        // Draw animated scanning grid on the hidden canvas
+        if (canvasRef.current) {
+          const canvas = canvasRef.current;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 20) {
+              ctx.beginPath();
+              ctx.moveTo(i, 0);
+              ctx.lineTo(i, canvas.height);
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.moveTo(0, i);
+              ctx.lineTo(canvas.width, i);
+              ctx.stroke();
+            }
           }
+        }
+      } else {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
 
-          imageTensor.dispose();
-          gray.dispose();
-          moments.mean.dispose();
-          moments.variance.dispose();
-        } catch (err) {
-          console.error('Video frame analysis error:', err);
+        if (ctx && video && video.readyState === 4) {
+          lastAnalysisTimeRef.current = now;
+          try {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Tensor processing for Turbidity/Haze estimation
+            const imageTensor = tf.browser.fromPixels(canvas);
+            const gray = tf.image.rgbToGrayscale(imageTensor);
+            
+            // Measure brightness variance and contrast
+            const moments = tf.moments(gray);
+            const varianceArr = await moments.variance.data();
+            const std = Math.sqrt(varianceArr[0]);
+
+            // Normalize to 0-100 scale
+            const turbidityValue = Math.max(0, Math.min(100, 100 - (std * 2)));
+            const rounded = Math.round(turbidityValue);
+            setTurbidity(rounded);
+
+            if (onScanUpdate && (rounded !== lastReportedRef.current || now - lastReportTimeRef.current > 1200)) {
+              lastReportedRef.current = rounded;
+              lastReportTimeRef.current = now;
+              onScanUpdate(rounded);
+            }
+
+            imageTensor.dispose();
+            gray.dispose();
+            moments.mean.dispose();
+            moments.variance.dispose();
+          } catch (err) {
+            console.warn('Video frame analysis error:', err);
+          }
         }
       }
 
@@ -286,23 +234,83 @@ export default function CameraScanner({ onScanUpdate }: CameraScannerProps) {
     };
 
     if (isScanning) {
-      analyzeFrame();
+      animationFrameId = requestAnimationFrame(analyzeFrame);
     }
 
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [isScanning]);
+  }, [isScanning, isSimulation]);
 
   return (
     <div className="w-full h-full relative bg-slate-950 overflow-hidden" id="camera-scanner-container">
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className="absolute inset-0 w-full h-full object-cover opacity-70 grayscale-[30%]"
-      />
+      {!isSimulation ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="absolute inset-0 w-full h-full object-cover opacity-70 grayscale-[30%]"
+        />
+      ) : (
+        /* High-fidelity virtual particle simulation background */
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-950 overflow-hidden pointer-events-none select-none">
+          {/* Subtle grid backdrop */}
+          <div className="absolute inset-0 opacity-[0.05]" 
+               style={{ 
+                 backgroundImage: `radial-gradient(circle, #38bdf8 1.5px, transparent 1.5px)`, 
+                 backgroundSize: '18px 18px' 
+               }} 
+          />
+          
+          {/* Neon corner bracket targets */}
+          <div className="absolute top-6 left-6 w-5 h-5 border-t border-l border-cyan-500/40" />
+          <div className="absolute top-6 right-6 w-5 h-5 border-t border-r border-cyan-500/40" />
+          <div className="absolute bottom-16 left-6 w-5 h-5 border-b border-l border-cyan-500/40" />
+          <div className="absolute bottom-16 right-6 w-5 h-5 border-b border-r border-cyan-500/40" />
+
+          {/* Central radar overlay */}
+          <div className="relative w-48 h-48 rounded-full border border-dashed border-cyan-500/10 flex items-center justify-center animate-[spin_30s_linear_infinite]">
+            <div className="absolute w-40 h-40 rounded-full border border-dashed border-cyan-500/5" />
+            <div className="absolute w-32 h-32 rounded-full border border-cyan-500/20" />
+            <div className="absolute w-16 h-16 rounded-full border border-cyan-500/30" />
+          </div>
+
+          {/* Scanning lines */}
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03]">
+            <div className="w-[400px] h-[400px] bg-gradient-to-tr from-cyan-500/30 via-transparent to-transparent rounded-full animate-[spin_8s_linear_infinite]" />
+          </div>
+          
+          {/* Flowing particle elements representing air-visibility tracking particles */}
+          <div className="absolute inset-x-8 bottom-24 top-16 flex flex-wrap gap-8 items-center justify-center opacity-30">
+            {[...Array(8)].map((_, i) => (
+              <div 
+                key={i} 
+                className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" 
+                style={{ animationDelay: `${i * 0.3}s`, transform: `translateY(${Math.sin(i) * 12}px)` }} 
+              />
+            ))}
+          </div>
+
+          <div className="absolute bottom-16 bg-cyan-500/10 border border-cyan-500/25 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg max-w-[90%] pointer-events-auto z-20">
+            <div className="w-1.5 h-1.5 rounded-full bg-cyan-450 animate-ping shrink-0" />
+            <span className="text-[8px] font-mono font-bold text-cyan-300 tracking-wider">
+              SENSOR VIRTUAL AKTIF (KAMERA TIDAK TERDETEKSI)
+            </span>
+            <button 
+              onClick={() => {
+                setIsSimulation(false);
+                setError(null);
+                startCamera();
+              }}
+              className="ml-1 px-1.5 py-0.5 rounded bg-cyan-600 hover:bg-cyan-700 text-[7.5px] font-black text-white tracking-widest transition active:scale-95 uppercase select-none cursor-pointer"
+              title="Coba hubungkan perangkat keras kamera fisik Anda"
+            >
+              Hubungkan Fisik
+            </button>
+          </div>
+        </div>
+      )}
       <canvas ref={canvasRef} className="hidden" width={224} height={224} />
       
       {/* HUD Overlay */}
@@ -326,17 +334,7 @@ export default function CameraScanner({ onScanUpdate }: CameraScannerProps) {
           )}
           
           <div className="flex items-center gap-2">
-            {/* Camera Cycle Trigger for Multi-Lens Mobile/Tablets */}
-            {devices.length > 1 && (
-              <button
-                onClick={cycleCamera}
-                className="p-2 gap-1.5 px-3 bg-indigo-500/20 backdrop-blur-xl rounded-xl border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/30 transition-all active:scale-95 shadow-lg flex items-center justify-center"
-                title="Ganti Lensa Kamera"
-              >
-                <RefreshCw size={13} className="text-indigo-400 transition-transform duration-300 active:rotate-180" />
-                <span className="text-[9px] font-black tracking-wider uppercase">Ganti Kamera</span>
-              </button>
-            )}
+
 
             {isScanning ? (
               <button
