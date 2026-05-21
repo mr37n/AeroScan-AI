@@ -3,6 +3,99 @@ import * as tf from '@tensorflow/tfjs';
 import { Camera, RefreshCw, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
+// Highly robust helper function to capture camera stream with multi-level fallbacks
+async function getRobustCameraStream(deviceId?: string): Promise<MediaStream> {
+  const isSpecific = !!deviceId && deviceId !== '';
+
+  if (isSpecific) {
+    try {
+      // 1. Try exact device selection at ideal high definition
+      return await navigator.mediaDevices.getUserMedia({
+        video: {
+          deviceId: { exact: deviceId },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
+    } catch (e1) {
+      console.warn('Failed exact device ID constraint with 720p, trying exact device only:', e1);
+      try {
+        // 2. Try exact device ID selection with absolutely no other constraints
+        return await navigator.mediaDevices.getUserMedia({
+          video: {
+            deviceId: { exact: deviceId }
+          }
+        });
+      } catch (e2) {
+        console.warn('Failed exact device ID only, trying ideal device ID with 720p:', e2);
+        try {
+          // 3. Try ideal device selection (less strict)
+          return await navigator.mediaDevices.getUserMedia({
+            video: {
+              deviceId: { ideal: deviceId },
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            }
+          });
+        } catch (e3) {
+          console.warn('Failed ideal device ID with 720p, trying ideal device only:', e3);
+          try {
+            // 4. Try ideal device with no constraints
+            return await navigator.mediaDevices.getUserMedia({
+              video: {
+                deviceId: { ideal: deviceId }
+              }
+            });
+          } catch (e4) {
+            console.warn('Failed all specific device constraints, falling back to general constraints.', e4);
+          }
+        }
+      }
+    }
+  }
+
+  // 5. Try standard environment/rear-facing camera constraints with 720p
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    });
+  } catch (e5) {
+    console.warn('Failed facingMode environment with 720p, trying ideal environment only:', e5);
+    try {
+      // 6. Try ideal environment with no resolution constraints
+      return await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' }
+        }
+      });
+    } catch (e6) {
+      console.warn('Failed ideal environment only, trying ideal 720p resolution only:', e6);
+      try {
+        // 7. Try standard 720p resolution (no facingMode)
+        return await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        });
+      } catch (e7) {
+        console.warn('Failed 720p ideal, trying basic video request:', e7);
+        try {
+          // 8. Try basic video request (any available camera device)
+          return await navigator.mediaDevices.getUserMedia({ video: true });
+        } catch (e8) {
+          console.error('All camera request combinations failed:', e8);
+          throw e8;
+        }
+      }
+    }
+  }
+}
+
 interface CameraScannerProps {
   onScanUpdate?: (turbidity: number) => void;
 }
@@ -41,9 +134,17 @@ export default function CameraScanner({ onScanUpdate }: CameraScannerProps) {
         return [];
       }
       const allDevices = await navigator.mediaDevices.enumerateDevices();
-      const videoIn = allDevices.filter(d => d.kind === 'videoinput');
+      const allVideoIn = allDevices.filter(d => d.kind === 'videoinput');
       
-      // Map and filter invalid labels (browsers block label enumeration before permission)
+      // Filter out front cameras if requested, but only if we have other options!
+      const rearVideoIn = allVideoIn.filter(d => {
+        const label = (d.label || '').toLowerCase();
+        return !label.includes('front') && !label.includes('depan') && !label.includes('user') && !label.includes('selfie');
+      });
+      
+      // Fallback to all video devices if filtering them all out leaves us with nothing (e.g., standard PC webcams)
+      const videoIn = rearVideoIn.length > 0 ? rearVideoIn : allVideoIn;
+      
       setDevices(videoIn);
       return videoIn;
     } catch (err) {
@@ -68,48 +169,25 @@ export default function CameraScanner({ onScanUpdate }: CameraScannerProps) {
       // Query available video inputs
       let videoIn = await getCameraDevices();
       
-      // If we don't have permission yet, we request standard camera access first
-      // to grant label permissions, then enumerate again to list them properly.
-      let stream: MediaStream;
+      // Determine if permissions were already granted (browsers only expose device labels after permission)
+      const hasPermission = videoIn.length > 0 && videoIn.some(d => d.label !== "");
       
-      const standardConstraints: MediaStreamConstraints = {
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      };
+      let stream: MediaStream;
 
-      if (videoIn.length === 0) {
-        // Fallback or request standard permission
-        stream = await navigator.mediaDevices.getUserMedia(standardConstraints);
-        // Re-enumerate now that permission has been granted
+      if (!hasPermission || videoIn.length === 0) {
+        // First-time load or permission not yet active: trigger the browser's generic permission dialog
+        stream = await getRobustCameraStream();
+        // Now that permission is granted, list and cache available cameras
         videoIn = await getCameraDevices();
       } else {
+        // Permission is already active, choose targeted camera from the enumerated list
         const targetDevice = videoIn[deviceIdx % videoIn.length];
         setCurrentDeviceIndex(deviceIdx % videoIn.length);
-
+        
         if (targetDevice && targetDevice.deviceId) {
-          try {
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: {
-                deviceId: { exact: targetDevice.deviceId },
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-              }
-            });
-          } catch (err) {
-            console.warn('Failed with strict device ID constraint, falling back with ideal:', err);
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: {
-                deviceId: { ideal: targetDevice.deviceId },
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-              }
-            });
-          }
+          stream = await getRobustCameraStream(targetDevice.deviceId);
         } else {
-          stream = await navigator.mediaDevices.getUserMedia(standardConstraints);
+          stream = await getRobustCameraStream();
         }
       }
 

@@ -188,8 +188,11 @@ export default function App() {
               </svg>
             </div>
             <div className="flex flex-col select-none leading-none">
-              <span className={`font-black text-xs tracking-tight ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>AeroScan AI</span>
-              <span className="text-[5.5px] font-black uppercase text-emerald-500 tracking-wider">Air Visibility Intelligence</span>
+              <div className="flex items-baseline gap-1">
+                <span className="font-bold text-[24px] text-black dark:text-white leading-none">AeroScan</span>
+                <span className="font-bold text-[24px] text-blue-600 leading-none">AI</span>
+              </div>
+              <span className="text-[12px] font-bold text-green-600 dark:text-green-500 mt-1">Air Visibility Intelligence</span>
             </div>
           </div>
         </div>
@@ -249,8 +252,11 @@ export default function App() {
                     </svg>
                   </div>
                   <div className="flex flex-col leading-none">
-                    <span className="font-extrabold text-xs sm:text-sm tracking-tight">AeroScan AI</span>
-                    <span className="text-[6.5px] font-black text-slate-400">Air Visibility Intelligence</span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-bold text-[24px] text-black dark:text-white leading-none">AeroScan</span>
+                      <span className="font-bold text-[24px] text-blue-600 leading-none">AI</span>
+                    </div>
+                    <span className="text-[12px] font-bold text-green-600 dark:text-green-500 mt-1">Air Visibility Intelligence</span>
                   </div>
                 </div>
 
@@ -396,11 +402,11 @@ export default function App() {
           </div>
           {!isSidebarCollapsed && (
             <div className="flex flex-col select-none leading-none justify-center">
-              <div className="flex items-baseline gap-0.5">
-                <span className={`font-black text-sm tracking-tight ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>AeroScan</span>
-                <span className="font-black text-sm tracking-tight text-blue-500">AI</span>
+              <div className="flex items-baseline gap-1">
+                <span className="font-bold text-[24px] text-black dark:text-white leading-none">AeroScan</span>
+                <span className="font-bold text-[24px] text-blue-600 leading-none">AI</span>
               </div>
-              <span className="text-[6px] font-black tracking-[0.08em] uppercase text-emerald-500 mt-0.5">
+              <span className="text-[12px] font-bold text-green-600 dark:text-green-500 mt-1">
                 Air Visibility Intelligence
               </span>
             </div>
@@ -958,19 +964,7 @@ export default function App() {
                       </button>
                     </div>
 
-                    {/* Offline persistence */}
-                    <div className={`flex items-center justify-between p-4 rounded-2xl border transition-colors ${darkMode ? 'bg-slate-950/40 border-slate-800' : 'bg-slate-50 border-slate-100/50'}`}>
-                      <div>
-                        <p className={`text-xs font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>Simpan Histori Lokal</p>
-                        <p className="text-[10px] text-slate-400">Gunakan penyimpanan lokal untuk menyimpan log pindaian.</p>
-                      </div>
-                      <button
-                        onClick={() => setSaveLocalHistory(!saveLocalHistory)}
-                        className={`w-10 h-6 rounded-full transition-all duration-300 relative ${saveLocalHistory ? 'bg-blue-600' : 'bg-slate-300'}`}
-                      >
-                        <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all duration-300 ${saveLocalHistory ? 'left-5' : 'left-1'}`} />
-                      </button>
-                    </div>
+                    {/* Offline persistence removed */}
                   </div>
                 </div>
               </div>
