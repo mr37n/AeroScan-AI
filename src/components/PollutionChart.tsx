@@ -77,7 +77,15 @@ const CustomPMTooltip = ({ active, payload, label, darkMode }: any) => {
   return null;
 };
 
-export default function PollutionChart({ darkMode = false, userCity = "Jakarta" }: { darkMode?: boolean; userCity?: string }) {
+export default function PollutionChart({ 
+  darkMode = false, 
+  userCity = "Jakarta",
+  currentAqi = 48
+}: { 
+  darkMode?: boolean; 
+  userCity?: string;
+  currentAqi?: number;
+}) {
   // Generate historical air quality records for the last 7 days ending with today's date
   const chartData = useMemo(() => {
     const result = [];
@@ -99,7 +107,15 @@ export default function PollutionChart({ darkMode = false, userCity = "Jakarta" 
       const d = new Date();
       d.setDate(today.getDate() - i);
       const dayName = ENG_DAYS[d.getDay()];
-      const pattern = basePatterns[dayName] || { pm25: 15, pm10: 20, aqi: 50 };
+      
+      // Symmetrically map custom pm25/pm10 values to aqi for Today's record (i === 0)
+      const pattern = i === 0 
+        ? {
+            pm25: Math.max(3, Math.round(currentAqi * 0.35)),
+            pm10: Math.max(5, Math.round(currentAqi * 0.65)),
+            aqi: currentAqi
+          }
+        : (basePatterns[dayName] || { pm25: 15, pm10: 20, aqi: 50 });
       
       result.push({
         day: dayName,
@@ -110,7 +126,7 @@ export default function PollutionChart({ darkMode = false, userCity = "Jakarta" 
       });
     }
     return result;
-  }, []);
+  }, [currentAqi]);
 
   // Compute live averages of metrics to populate the executive status header metrics
   const statsSummary = useMemo(() => {

@@ -113,15 +113,29 @@ const darkMapStyle = [
 export default function DashboardMap({ 
   darkMode = false, 
   userCoords, 
-  userCity 
+  userCity,
+  stations: externalStations,
+  setStations: setExternalStations,
+  selectedStation: externalSelectedStation,
+  setSelectedStation: setExternalSelectedStation
 }: { 
   darkMode?: boolean;
   userCoords?: { lat: number; lng: number } | null;
   userCity?: string;
+  stations?: any[];
+  setStations?: React.Dispatch<React.SetStateAction<any[]>> | ((stations: any[]) => void);
+  selectedStation?: any;
+  setSelectedStation?: React.Dispatch<React.SetStateAction<any | null>> | ((station: any | null) => void);
 }) {
   const defaultCenter = { lat: -6.1850, lng: 106.8250 };
-  const [stations, setStations] = useState(INITIAL_STATIONS);
-  const [selectedStation, setSelectedStation] = useState<typeof INITIAL_STATIONS[0] | null>(INITIAL_STATIONS[0]);
+  const [localStations, setLocalStations] = useState(INITIAL_STATIONS);
+  const stations = externalStations !== undefined ? externalStations : localStations;
+  const setStations = setExternalStations !== undefined ? setExternalStations : setLocalStations;
+
+  const [localSelectedStation, setLocalSelectedStation] = useState<typeof INITIAL_STATIONS[0] | null>(INITIAL_STATIONS[0]);
+  const selectedStation = externalSelectedStation !== undefined ? externalSelectedStation : localSelectedStation;
+  const setSelectedStation = setExternalSelectedStation !== undefined ? setExternalSelectedStation : setLocalSelectedStation;
+
   const [center, setCenter] = useState(defaultCenter);
   const [zoom, setZoom] = useState(11.5);
   const [showStations, setShowStations] = useState(true);

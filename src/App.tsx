@@ -50,6 +50,17 @@ export default function App() {
   const [userCity, setUserCity] = useState<string>('Jakarta');
   const [isLocating, setIsLocating] = useState<boolean>(false);
 
+  const INITIAL_STATIONS = [
+    { id: 'pusat', name: 'Stasiun Jakarta Pusat', lat: -6.1751, lng: 106.8272, aqi: 48, status: 'Baik' },
+    { id: 'selatan', name: 'Stasiun Kuningan (Selatan)', lat: -6.2297, lng: 106.8159, aqi: 122, status: 'Tidak Sehat' },
+    { id: 'barat', name: 'Stasiun Kebon Jeruk (Barat)', lat: -6.1683, lng: 106.7588, aqi: 68, status: 'Sedang' },
+    { id: 'utara', name: 'Stasiun Ancol (Utara)', lat: -6.1261, lng: 106.8416, aqi: 82, status: 'Sedang' },
+    { id: 'timur', name: 'Stasiun Halim (Timur)', lat: -6.2588, lng: 106.8833, aqi: 96, status: 'Sedang' }
+  ];
+
+  const [stations, setStations] = useState<any[]>(INITIAL_STATIONS);
+  const [selectedStation, setSelectedStation] = useState<any | null>(INITIAL_STATIONS[0]);
+
   // Dynamic Real-time sensor readings state (updating automatically matching device usage & intervals)
   const [pm10, setPm10] = useState(8.2);
   const [pm25, setPm25] = useState(12.4);
@@ -61,39 +72,85 @@ export default function App() {
   const [satelliteSync, setSatelliteSync] = useState(1.2);
   const [accuracyConfidence, setAccuracyConfidence] = useState(99.1);
 
-  // Automatic real-time atmospheric sensor updates simulating device telemetry
+  // Synchronize stations dynamically when user location is resolved
+  useEffect(() => {
+    if (userCoords) {
+      const label = userCity || 'Anda';
+      const dynamicStations = [
+        { id: 'pusat', name: `Stasiun ${label} Pusat`, lat: userCoords.lat, lng: userCoords.lng, aqi: 48, status: 'Baik' },
+        { id: 'selatan', name: `Stasiun ${label} Selatan`, lat: userCoords.lat - 0.015, lng: userCoords.lng, aqi: 122, status: 'Tidak Sehat' },
+        { id: 'barat', name: `Stasiun ${label} Barat`, lat: userCoords.lat, lng: userCoords.lng - 0.015, aqi: 68, status: 'Sedang' },
+        { id: 'utara', name: `Stasiun ${label} Utara`, lat: userCoords.lat + 0.015, lng: userCoords.lng, aqi: 82, status: 'Sedang' },
+        { id: 'timur', name: `Stasiun ${label} Timur`, lat: userCoords.lat, lng: userCoords.lng + 0.015, aqi: 96, status: 'Sedang' }
+      ];
+      setStations(dynamicStations);
+      setSelectedStation(dynamicStations[0]);
+    } else {
+      setStations(INITIAL_STATIONS);
+      setSelectedStation(INITIAL_STATIONS[0]);
+    }
+  }, [userCoords, userCity]);
+
+  // Symmetrically map custom helper variables based on currently selected map station to keep everything unified
+  useEffect(() => {
+    if (selectedStation) {
+      const liveAqi = selectedStation.aqi;
+      setPm25(Math.max(3.0, Number((liveAqi * 0.35).toFixed(1))));
+      setPm10(Math.max(5.0, Number((liveAqi * 0.65).toFixed(1))));
+      setPm100(Math.max(10.0, Number((liveAqi * 1.1).toFixed(1))));
+      setCo(Math.max(0.1, Number((liveAqi * 0.006).toFixed(2))));
+      setNo2(Math.max(2, Math.round(liveAqi * 0.25)));
+      setO3(Math.max(5, Math.round(liveAqi * 0.32)));
+    }
+  }, [selectedStation?.aqi]);
+
+  // Maintain selectedStation link whenever elements inside stations change
+  useEffect(() => {
+    if (selectedStation) {
+      const current = stations.find(s => s.id === selectedStation.id);
+      if (current) {
+        setSelectedStation(current);
+      }
+    }
+  }, [stations]);
+
+  // Synchronize dynamic updates on other system diagnostics
   useEffect(() => {
     const timer = setInterval(() => {
-      setPm10(prev => Math.max(3.0, Math.min(25.0, Number((prev + (Math.random() * 0.8 - 0.4)).toFixed(1)))));
-      setPm25(prev => Math.max(5.0, Math.min(45.0, Number((prev + (Math.random() * 1.2 - 0.6)).toFixed(1)))));
-      setPm100(prev => Math.max(10.0, Math.min(55.0, Number((prev + (Math.random() * 1.8 - 0.9)).toFixed(1)))));
-      
-      setCo(prev => Math.max(0.15, Math.min(1.2, Number((prev + (Math.random() * 0.04 - 0.02)).toFixed(2)))));
-      setNo2(prev => Math.max(5, Math.min(35, Math.round(prev + (Math.random() * 2 - 1)))));
-      setO3(prev => Math.max(10, Math.min(50, Math.round(prev + (Math.random() * 2 - 1)))));
-
+      // Fluid variations for other sensor readouts
       setCameraFit(prev => Math.max(92.0, Math.min(99.5, Number((prev + (Math.random() * 0.4 - 0.2)).toFixed(1)))));
       setSatelliteSync(prev => Math.max(0.4, Math.min(3.2, Number((prev + (Math.random() * 0.2 - 0.1)).toFixed(1)))));
       setAccuracyConfidence(prev => Math.max(98.1, Math.min(99.9, Number((prev + (Math.random() * 0.08 - 0.04)).toFixed(1)))));
-    }, 3500);
+
+      // Gently variate AQI of stations dynamically to keep markers live and actual
+      setStations(prev => prev.map(s => {
+        const variance = Math.floor(Math.random() * 3) - 1; // subtle variance
+        const updatedAqi = Math.max(15, Math.min(250, s.aqi + variance));
+        let status = 'Sedang';
+        if (updatedAqi <= 50) status = 'Baik';
+        else if (updatedAqi <= 100) status = 'Sedang';
+        else status = 'Tidak Sehat';
+        return { ...s, aqi: updatedAqi, status };
+      }));
+    }, 4500);
 
     return () => clearInterval(timer);
   }, []);
 
-  // When device camera scanner operates, feed the active visual computer telemetry into local readouts
+  // Sync camera Scan results back into current active station's AQI
   const handleScanUpdate = (turbidity: number) => {
-    // Convert 0-100 visual turbidity to realistic PM concentrations
-    // High turbidity (heavy air density / visual obstruction) yields higher PM2.5 (up to 45 µg/m³)
-    const computedPm25 = Math.max(5.0, Math.min(48.0, Number((6.0 + (turbidity * 0.42)).toFixed(1))));
-    setPm25(computedPm25);
-    setPm10(Math.max(3.0, Number((computedPm25 * 0.65).toFixed(1))));
-    setPm100(Math.max(10.0, Number((computedPm25 * 1.45).toFixed(1))));
+    const computedAqi = Math.max(15, Math.round(15 + turbidity * 2.1));
+    if (selectedStation) {
+      const updated = {
+        ...selectedStation,
+        aqi: computedAqi,
+        status: computedAqi <= 50 ? 'Baik' : computedAqi <= 100 ? 'Sedang' : 'Tidak Sehat'
+      };
+      setSelectedStation(updated);
+      setStations(prev => prev.map(s => s.id === selectedStation.id ? updated : s));
+    }
     
-    // Slightly adjust gaseous metrics on haze
-    setCo(prev => Math.max(0.2, Math.min(1.1, Number((0.3 + (turbidity * 0.007)).toFixed(2)))));
-    setNo2(prev => Math.max(8, Math.min(32, Math.round(12 + (turbidity * 0.18)))));
-    
-    // Elevate camera visual capture confidence fit on active lock
+    // Elevate diagnostic telemetry on scan lock
     setCameraFit(Math.max(95.0, Math.min(99.9, Number((96.5 + (Math.random() * 3.3)).toFixed(1)))));
     setAccuracyConfidence(prev => Math.max(99.2, Math.min(99.9, Number((99.2 + (Math.random() * 0.7)).toFixed(1)))));
   };
@@ -127,7 +184,7 @@ export default function App() {
   };
 
   const aqs = getAirQualityStatus(pm25);
-  const dynamicAQI = Math.max(12, Math.round(pm25 * 2.2 + 8));
+  const dynamicAQI = selectedStation?.aqi || 48;
   const dynamicCO2 = Math.round(380 + co * 70);
 
   useEffect(() => {
@@ -567,7 +624,7 @@ export default function App() {
                       : 'bg-[#eaeff5] border-slate-200/50 text-[#475569]'
                   }`}>
                     <MapPin size={11} className="text-[#2b7ca5] dark:text-[#38bdf8] shrink-0" />
-                    <span>Houston Facility</span>
+                    <span>{userCity} Facility</span>
                   </div>
                 </div>
               </div>
@@ -726,10 +783,13 @@ export default function App() {
                   <span className={`text-[16px] font-black tracking-tight ${
                     darkMode ? 'text-white' : 'text-[#1e3a8a]'
                   }`}>
-                    Houston Facility
+                    {userCity} Sector
                   </span>
                 </div>
-                <MapPin size={18} className={darkMode ? 'text-slate-400' : 'text-slate-600'} />
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">{userCity}</span>
+                  <MapPin size={18} className={darkMode ? 'text-slate-400' : 'text-slate-600'} />
+                </div>
               </div>
 
               {/* INTELLIGENCE OVERVIEW */}
@@ -743,7 +803,7 @@ export default function App() {
                 <p className={`text-[12px] sm:text-sm font-medium leading-relaxed ${
                   darkMode ? 'text-slate-300' : 'text-[#334155]'
                 }`}>
-                  System integrity at 98.4%. No critical deviations detected in Houston sector A-12.
+                  System integrity at 98.4%. No critical deviations detected in {userCity} sector A-12.
                 </p>
               </div>
 
@@ -776,7 +836,7 @@ export default function App() {
 
               {/* The separate freestanding Chart cards */}
               <div className="w-full">
-                <PollutionChart darkMode={darkMode} userCity={userCity} />
+                <PollutionChart darkMode={darkMode} userCity={userCity} currentAqi={dynamicAQI} />
               </div>
 
               {/* GEO OVERLAY */}
@@ -792,7 +852,15 @@ export default function App() {
                     ? 'border-slate-800 bg-slate-900 shadow-2xl shadow-slate-950/20' 
                     : 'border-slate-150 bg-white shadow-xl shadow-slate-200/40'
                 }`}>
-                  <DashboardMap darkMode={darkMode} userCoords={userCoords} userCity={userCity} />
+                  <DashboardMap 
+                    darkMode={darkMode} 
+                    userCoords={userCoords} 
+                    userCity={userCity}
+                    stations={stations}
+                    setStations={setStations}
+                    selectedStation={selectedStation}
+                    setSelectedStation={setSelectedStation}
+                  />
                 </div>
               </div>
 
@@ -817,10 +885,13 @@ export default function App() {
                   <span className={`text-[16px] font-black tracking-tight ${
                     darkMode ? 'text-white' : 'text-[#1e3a8a]'
                   }`}>
-                    Health Hub
+                    Health Hub - {userCity}
                   </span>
                 </div>
-                <MapPin size={18} className={darkMode ? 'text-slate-400' : 'text-slate-600'} />
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">{userCity}</span>
+                  <MapPin size={18} className={darkMode ? 'text-slate-400' : 'text-slate-600'} />
+                </div>
               </div>
 
               {/* CARD 1: Health Advisory & Rekomendasi */}
