@@ -743,76 +743,85 @@ export default function DashboardMap({
 
       {/* Floating Station Info Pane & Global Air Quality State */}
       {showStations && (
-        <div className={`absolute bottom-4 right-4 md:bottom-5 md:right-5 w-76 max-w-[calc(100%-2rem)] flex flex-col gap-2.5 p-3.5 rounded-[22px] border shadow-2xl transition-all duration-300 backdrop-blur-md z-20 ${
+        <div className={`absolute bottom-4 left-4 right-4 md:left-auto md:right-5 md:w-80 flex flex-col gap-3 p-4 rounded-2xl border shadow-xl transition-all duration-300 z-20 ${
           darkMode 
-            ? 'bg-slate-950/90 border-slate-800 text-slate-100/95 shadow-slate-950/50' 
-            : 'bg-white/90 border-slate-200/50 text-slate-900 shadow-slate-200/40'
+            ? 'bg-slate-900/95 border-slate-800 text-slate-100 shadow-slate-950/50' 
+            : 'bg-[#ced4da]/95 dark:bg-[#e2e8f0]/95 border-white/50 text-[#0f172a] shadow-slate-300/40'
         }`}>
-          {/* Top Header Row with status */}
-          <div className="flex items-center justify-between gap-2 border-b pb-2 transition-colors border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
-                  <Wind size={14} className="animate-pulse" />
-                </div>
-                <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 border border-white dark:border-slate-950 ring-1 ring-emerald-500/20 animate-pulse" />
+          {/* Top Section block matching portrait layout */}
+          <div className="flex items-start justify-between gap-2.5 w-full">
+            <div className="flex flex-col gap-1 items-start leading-tight">
+              {/* Green badge and station name */}
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-[5px] bg-[#10b981] text-white text-[9px] font-black tracking-wide leading-none select-none">
+                  LIVE
+                </span>
+                <span className="text-[13px] font-black tracking-tight text-slate-900">
+                  {selectedStation ? selectedStation.name : 'Stasiun Jakarta Pusat'}
+                </span>
               </div>
-              <div>
-                <div className="flex items-center gap-1">
-                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Sensor Aktivitas</span>
-                  <span className="text-[7px] font-black uppercase text-blue-500 px-1.5 py-0.2 bg-blue-500/10 rounded border border-blue-500/20 select-none animate-pulse">Live</span>
-                </div>
-                <p className="text-[11px] font-black tracking-tight leading-tight mt-0.5 truncate max-w-[130px]" title={selectedStation?.name}>
-                  {selectedStation ? selectedStation.name : 'Jakarta Core'}
-                </p>
-              </div>
+              <span className="text-[10px] font-semibold text-slate-500 tracking-wide mt-1">
+                Sensor Aktivitas: Aktif & Terkalibrasi
+              </span>
             </div>
-            <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider border select-none ${
-              darkMode ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-150 text-slate-500'
-            }`}>
-              ID
-            </span>
+            
+            {/* Right side large AQI status information */}
+            <div className="flex flex-col items-end leading-none">
+              <span className="text-[20px] font-black text-[#047857] tracking-tight">
+                {(selectedStation?.aqi || 48)} <span className="text-[10px] font-bold text-slate-500 tracking-normal ml-0.5">AQI</span>
+              </span>
+              <span className="text-[10px] font-black text-[#047857] tracking-wider uppercase mt-1">
+                {selectedStation?.status || 'BAIK'}
+              </span>
+            </div>
           </div>
 
-          {/* Center AQI and Air category */}
-          <div className="flex items-center justify-between py-0.5">
-            <div className="flex flex-col">
-              <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider leading-none">Kualitas Udara</span>
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <span className={`w-2 h-2 rounded-full ${getStationColor(selectedStation?.aqi || 50).dot} animate-pulse`} />
-                <span className={`text-[11px] font-extrabold leading-none ${getStationColor(selectedStation?.aqi || 50).text}`}>
-                  {selectedStation?.status || '--'}
+          {/* Thin grey line separator */}
+          <div className="h-[1px] w-full bg-slate-400/20 dark:bg-slate-800/45 my-0.5" />
+
+          {/* Lower Section block with details buttons */}
+          <div className="flex items-center justify-between w-full">
+            {/* Radius & Active Sensors details left */}
+            <div className="flex items-center gap-5 select-none leading-none">
+              <div className="flex flex-col gap-1">
+                <span className="text-[8px] font-extrabold text-slate-450 dark:text-slate-550 uppercase tracking-widest">
+                  RADIUS
+                </span>
+                <span className="text-[11px] font-black text-slate-800 dark:text-slate-200">
+                  1.2 KM
+                </span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[8px] font-extrabold text-slate-450 dark:text-slate-550 uppercase tracking-widest">
+                  SENSORS
+                </span>
+                <span className="text-[11px] font-black text-slate-800 dark:text-slate-200">
+                  12 ACTIVE
                 </span>
               </div>
             </div>
-            <div className="flex items-baseline gap-0.5">
-              <span className={`text-2xl font-black tracking-tighter leading-none ${getStationColor(selectedStation?.aqi || 50).text}`}>
-                {selectedStation?.aqi || '--'}
-              </span>
-              <span className="text-[8px] font-black text-slate-450 uppercase tracking-widest leading-none font-mono">AQI</span>
-            </div>
-          </div>
 
-          {/* Bottom Switch button controls */}
-          <div className="flex items-center justify-between border-t pt-2 border-slate-100 dark:border-slate-800">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest select-none">Stasiun</span>
-            <div className="flex gap-1">
-              {stations.map(station => (
-                <button
-                  key={station.id}
-                  onClick={() => setSelectedStation(station)}
-                  className={`w-6 h-6 rounded-md text-[8.5px] font-black transition-all duration-200 border flex items-center justify-center ${
-                    selectedStation?.id === station.id
-                      ? 'bg-blue-600 border-blue-500 text-white scale-105 shadow-md shadow-blue-500/20'
-                      : darkMode
-                        ? 'bg-slate-900 border-slate-800 hover:bg-slate-850 text-slate-400'
-                        : 'bg-white border-slate-200/60 hover:bg-slate-50 text-slate-500'
-                  }`}
-                  title={station.name}
-                >
-                  {station.id.charAt(0).toUpperCase()}
-                </button>
-              ))}
+            {/* Cyan/Blue styled Action button and stations trigger buttons */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  // Cycle selected station
+                  const currentIndex = stations.findIndex(s => s.id === selectedStation?.id);
+                  const nextIndex = (currentIndex + 1) % stations.length;
+                  setSelectedStation(stations[nextIndex]);
+                }}
+                className="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-800 text-[9.5px] font-extrabold text-slate-700 dark:text-slate-350 hover:bg-white/20 transition-all cursor-pointer"
+                title="Ganti Stasiun"
+              >
+                SWAP
+              </button>
+              
+              <button 
+                className="px-4 py-1.5 rounded-lg bg-[#00a8e8] hover:bg-[#0090c4] text-white font-black text-[10px] uppercase tracking-wider transition-all duration-300 shadow-md shadow-sky-500/10 cursor-pointer active:scale-95"
+                onClick={() => alert(`Informasi stasiun: ${selectedStation?.name || 'Stasiun Jakarta Pusat'} aktif dan terkalibrasi secara dinamis dengan indeks kualitas udara di level ${selectedStation?.aqi || 48} AQI.`)}
+              >
+                DETAILS
+              </button>
             </div>
           </div>
         </div>

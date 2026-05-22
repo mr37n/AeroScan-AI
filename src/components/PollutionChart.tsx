@@ -130,228 +130,192 @@ export default function PollutionChart({ darkMode = false, userCity = "Jakarta" 
   }, [chartData]);
 
   return (
-    <div 
-      className={`w-full transition-all duration-300 p-6 md:p-10 border shadow-3xl flex flex-col gap-8 rounded-3xl ${
-        darkMode 
-          ? 'bg-[#090d1a] border-slate-900 text-slate-100' 
-          : 'bg-white border-slate-100 text-slate-800'
-      }`} 
-      id="historical-chart-container"
-    >
-      {/* EXECUTIVE HEADER PANEL */}
-      <div className={`flex flex-col lg:flex-row lg:items-center justify-between pb-6 border-b gap-6 transition-colors duration-300 ${
-        darkMode ? 'border-slate-900' : 'border-slate-100'
-      }`}>
-        <div className="flex flex-col gap-2">
-          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-xl w-fit border select-none ${
-            darkMode ? 'border-blue-500/15 bg-blue-500/5' : 'border-blue-100 bg-blue-50/50'
-          }`}>
-            <Activity size={12} className="text-blue-500 animate-pulse" />
-            <span className={`text-[9px] font-mono font-black uppercase tracking-widest ${
-              darkMode ? 'text-blue-400' : 'text-blue-600'
-            }`}>
-              Executive Analytics Panel
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full">
+      
+      {/* CHART 1 CARD: AQI TREND SPLINE AREA */}
+      <motion.div 
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className={`rounded-[20px] p-5 sm:p-6 flex flex-col gap-4 relative overflow-hidden group border shadow-sm ${
+          darkMode 
+            ? 'bg-slate-900/60 border-slate-800 shadow-xl' 
+            : 'bg-[#f8fafc]/90 border-slate-200/50'
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-0.5 select-none font-sans">
+            <span className="text-[9px] font-extrabold tracking-[0.16em] uppercase text-slate-400 dark:text-slate-500">
+              Tren 7 Hari
             </span>
+            <h4 className={`text-[13px] sm:text-sm font-black tracking-tight ${
+              darkMode ? 'text-white' : 'text-[#0f172a]'
+            }`}>
+              Line Kualitas Udara (AQI)
+            </h4>
           </div>
-          <div>
-            <h3 className={`text-lg md:text-xl font-black tracking-tight leading-none mb-1.5 flex items-center gap-2 ${
-              darkMode ? 'text-white' : 'text-slate-800'
-            }`}>
-              Analisis Polusi Udara Historis
-            </h3>
-            <p className={`text-xs leading-relaxed font-sans max-w-xl ${
-              darkMode ? 'text-slate-400' : 'text-slate-500'
-            }`}>
-              Model intelijen spasial mendata indikator polutan utama di daerah <span className="text-blue-500 font-bold">{userCity}</span> secara berkala. Arahkan kursor ke titik grafik untuk mendalami parameter.
-            </p>
+          <div className={`w-8 h-8 rounded-lg border flex items-center justify-center select-none ${
+            darkMode 
+              ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' 
+              : 'bg-blue-50 border-blue-100 text-[#2b7ca5] dark:text-[#38bdf8]'
+          }`}>
+            <Calendar size={14} />
           </div>
         </div>
-      </div>
 
-      {/* DUAL-CHART DASHBOARD GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+        <div className="h-[180px] sm:h-[220px] w-full pt-1">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart 
+              data={chartData} 
+              margin={{ top: 10, right: 10, left: -25, bottom: 5 }}
+            >
+              <defs>
+                <linearGradient id="colorAQITrendGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25}/>
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                vertical={false} 
+                stroke={darkMode ? '#1e293b' : '#cbd5e1/40'} 
+              />
+              <XAxis 
+                dataKey="day" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 10, fontWeight: 600, fill: '#64748b' }}
+                dy={8}
+              />
+              <YAxis 
+                domain={[0, 100]}
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 10, fontWeight: 600, fill: '#64748b' }}
+              />
+              <Tooltip 
+                content={<CustomAQITooltip darkMode={darkMode} />}
+                cursor={{ stroke: darkMode ? '#334155' : '#cbd5e1', strokeWidth: 1.2, strokeDasharray: '3 3' }}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="aqi" 
+                stroke="#378bb5" 
+                strokeWidth={2.5} 
+                fillOpacity={1} 
+                fill="url(#colorAQITrendGradient)" 
+                activeDot={{ r: 6, strokeWidth: 0, fill: '#378bb5' }}
+                animationDuration={1500}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
         
-        {/* CHART 1 CARD: AQI TREND SPLINE AREA */}
-        <motion.div 
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className={`rounded-2xl p-6 flex flex-col gap-4 relative overflow-hidden group border ${
-            darkMode 
-              ? 'bg-[#0b1329] border-slate-900 shadow-xl' 
-              : 'bg-slate-50 border-slate-100 shadow-sm'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-0.5">
-              <span className={`text-[10px] font-mono font-bold tracking-widest uppercase ${
-                darkMode ? 'text-slate-500' : 'text-slate-400'
-              }`}>Tren 7 Hari</span>
-              <h4 className={`text-sm font-extrabold font-sans tracking-tight ${
-                darkMode ? 'text-white' : 'text-slate-800'
-              }`}>Line Kualitas Udara (AQI)</h4>
-            </div>
-            <div className={`w-8 h-8 rounded-lg border flex items-center justify-center select-none ${
-              darkMode 
-                ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' 
-                : 'bg-blue-50 border-blue-100 text-blue-500'
-            }`}>
-              <Calendar size={14} />
-            </div>
-          </div>
+        {/* Custom Mini Info Stamp */}
+        <div className={`flex items-center justify-between text-[9px] pt-1 font-sans ${
+          darkMode ? 'text-slate-500' : 'text-slate-400'
+        }`}>
+          <span className="flex items-center gap-1 select-none">
+            <Info size={11} className={darkMode ? 'text-slate-600' : 'text-slate-400'} />
+            Skala AQI 0-100 Standardized
+          </span>
+          <span className="font-mono text-[9px] text-[#2b7ca5] dark:text-[#38bdf8] select-none font-bold">Live Sync Loop Enabled</span>
+        </div>
+      </motion.div>
 
-          <div className="h-[240px] w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart 
-                data={chartData} 
-                margin={{ top: 10, right: 10, left: -25, bottom: 5 }}
-              >
-                <defs>
-                  <linearGradient id="colorAQITrendGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  vertical={false} 
-                  stroke={darkMode ? '#1e293b' : '#e2e8f0'} 
-                />
-                <XAxis 
-                  dataKey="day" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fontWeight: 600, fill: '#64748b' }}
-                  dy={8}
-                />
-                <YAxis 
-                  domain={[0, 100]}
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fontWeight: 600, fill: '#64748b' }}
-                />
-                <Tooltip 
-                  content={<CustomAQITooltip darkMode={darkMode} />}
-                  cursor={{ stroke: darkMode ? '#334155' : '#cbd5e1', strokeWidth: 1.2, strokeDasharray: '3 3' }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="aqi" 
-                  stroke="#3b82f6" 
-                  strokeWidth={2.5} 
-                  fillOpacity={1} 
-                  fill="url(#colorAQITrendGradient)" 
-                  activeDot={{ r: 6, strokeWidth: 0, fill: '#3b82f6' }}
-                  animationDuration={1500}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-          
-          {/* Custom Mini Info Stamp */}
-          <div className={`flex items-center justify-between text-[10px] pt-1 font-sans ${
-            darkMode ? 'text-slate-500' : 'text-slate-400'
-          }`}>
-            <span className="flex items-center gap-1">
-              <Info size={11} className={darkMode ? 'text-slate-600' : 'text-slate-450'} />
-              Skala AQI 0-100 Standardized
+      {/* CHART 2 CARD: PM2.5 vs PM10 GROUPED COLUMN BARS */}
+      <motion.div 
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.15 }}
+        className={`rounded-[20px] p-5 sm:p-6 flex flex-col gap-4 relative overflow-hidden group border shadow-sm ${
+          darkMode 
+            ? 'bg-slate-900/60 border-slate-800 shadow-xl' 
+            : 'bg-[#f8fafc]/90 border-slate-200/50'
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-0.5 select-none font-sans">
+            <span className="text-[9px] font-extrabold tracking-[0.16em] uppercase text-slate-400 dark:text-slate-500">
+              Particulate Matter
             </span>
-            <span className="font-mono text-[9px] text-[#3b82f6]">Live Sync Loop Enabled</span>
-          </div>
-        </motion.div>
-
-        {/* CHART 2 CARD: PM2.5 vs PM10 GROUPED COLUMN BARS */}
-        <motion.div 
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.15 }}
-          className={`rounded-2xl p-6 flex flex-col gap-4 relative overflow-hidden group border ${
-            darkMode 
-              ? 'bg-[#0b1329] border-slate-900 shadow-xl' 
-              : 'bg-slate-50 border-slate-100 shadow-sm'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-0.5">
-              <span className={`text-[10px] font-mono font-bold tracking-widest uppercase ${
-                darkMode ? 'text-slate-500' : 'text-slate-400'
-              }`}>Particulate Matter</span>
-              <h4 className={`text-sm font-extrabold font-sans tracking-tight ${
-                darkMode ? 'text-white' : 'text-slate-800'
-              }`}>Komparasi PM2.5 vs PM10</h4>
-            </div>
-            <div className={`w-8 h-8 rounded-lg border flex items-center justify-center select-none ${
-              darkMode 
-                ? 'bg-emerald-500/10 border-emerald-500/20 text-[#f59e0b]' 
-                : 'bg-amber-50 border-amber-100 text-[#d97706]'
+            <h4 className={`text-[13px] sm:text-sm font-black tracking-tight ${
+              darkMode ? 'text-white' : 'text-[#0f172a]'
             }`}>
-              <BarChart2 size={14} />
-            </div>
+              Komparasi PM2.5 vs PM10
+            </h4>
           </div>
-
-          <div className="h-[240px] w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
-                data={chartData} 
-                margin={{ top: 10, right: 10, left: -25, bottom: 5 }}
-                barGap={5}
-              >
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  vertical={false} 
-                  stroke={darkMode ? '#1e293b' : '#e2e8f0'} 
-                />
-                <XAxis 
-                  dataKey="day" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fontWeight: 600, fill: '#64748b' }}
-                  dy={8}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fontWeight: 600, fill: '#64748b' }}
-                />
-                <Tooltip 
-                  content={<CustomPMTooltip darkMode={darkMode} />}
-                  cursor={{ fill: darkMode ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.015)' }}
-                />
-                <Bar 
-                  name="pm25"
-                  dataKey="pm25"
-                  fill="#ef4444" 
-                  barSize={12}
-                  radius={[3, 3, 0, 0]}
-                  animationDuration={1500}
-                />
-                <Bar 
-                  dataKey="pm10" 
-                  fill="#f59e0b" 
-                  barSize={12}
-                  radius={[3, 3, 0, 0]}
-                  animationDuration={1800}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          
-          {/* Centered Premium Legend Map below the timeline axis labels with exact circles */}
-          <div className={`flex items-center justify-center gap-6 text-[11px] font-semibold pt-1 ${
-            darkMode ? 'text-slate-400' : 'text-slate-600'
+          <div className={`w-8 h-8 rounded-lg border flex items-center justify-center select-none ${
+            darkMode 
+              ? 'bg-emerald-500/10 border-emerald-500/20 text-[#f59e0b]' 
+              : 'bg-amber-100/50 border-amber-200 text-[#c2410c] dark:text-[#f59e0b]'
           }`}>
-            <div className="flex items-center gap-2 hover:opacity-80 transition cursor-help" title="Partikel Udara Halus (Fine Particulate Matter)">
-              <span className="w-2.5 h-2.5 bg-[#ef4444] rounded-full inline-block shrink-0" />
-              <span>■ PM 2.5</span>
-            </div>
-            <div className="flex items-center gap-2 hover:opacity-80 transition cursor-help" title="Partikel Udara Kasar (Coarse Particulate Matter)">
-              <span className="w-2.5 h-2.5 bg-[#f59e0b] rounded-full inline-block shrink-0" />
-              <span>■ PM 10</span>
-            </div>
+            <BarChart2 size={14} />
           </div>
-        </motion.div>
+        </div>
 
-      </div>
+        <div className="h-[180px] sm:h-[220px] w-full pt-1">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart 
+              data={chartData} 
+              margin={{ top: 10, right: 10, left: -25, bottom: 5 }}
+              barGap={5}
+            >
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                vertical={false} 
+                stroke={darkMode ? '#1e293b' : '#cbd5e1/40'} 
+              />
+              <XAxis 
+                dataKey="day" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 10, fontWeight: 600, fill: '#64748b' }}
+                dy={8}
+              />
+              <YAxis 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 10, fontWeight: 600, fill: '#64748b' }}
+              />
+              <Tooltip 
+                content={<CustomPMTooltip darkMode={darkMode} />}
+                cursor={{ fill: darkMode ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.015)' }}
+              />
+              <Bar 
+                name="pm25"
+                dataKey="pm25"
+                fill="#b91c1c" 
+                barSize={12}
+                radius={[3, 3, 0, 0]}
+                animationDuration={1500}
+              />
+              <Bar 
+                dataKey="pm10" 
+                fill="#d97706" 
+                barSize={12}
+                radius={[3, 3, 0, 0]}
+                animationDuration={1800}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        
+        {/* Centered Premium Legend Map below the timeline axis labels with exact circles */}
+        <div className={`flex items-center justify-center gap-6 text-[11px] font-semibold pt-1 select-none ${
+          darkMode ? 'text-slate-400' : 'text-slate-600'
+        }`}>
+          <div className="flex items-center gap-2 hover:opacity-85 transition cursor-help" title="Partikel Udara Halus (Fine Particulate Matter)">
+            <span className="w-2.5 h-2.5 bg-[#b91c1c] rounded-full inline-block shrink-0" />
+            <span>■ PM 2.5</span>
+          </div>
+          <div className="flex items-center gap-2 hover:opacity-85 transition cursor-help" title="Partikel Udara Kasar (Coarse Particulate Matter)">
+            <span className="w-2.5 h-2.5 bg-[#d97706] rounded-full inline-block shrink-0" />
+            <span>■ PM 10</span>
+          </div>
+        </div>
+      </motion.div>
+
     </div>
   );
 }
