@@ -397,7 +397,7 @@ export default function App() {
                       }`}
                     >
                       <Wind size={18} className={isGenerating ? 'animate-spin text-blue-400' : ''} />
-                      <span className="text-xs uppercase font-semibold tracking-wider">Export PDF Report</span>
+                      <span className="text-xs uppercase font-semibold tracking-wider">Export PDF</span>
                     </button>
                   )}
                 />
@@ -529,13 +529,13 @@ export default function App() {
                 } ${
                   darkMode ? 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60' : 'text-slate-550 hover:text-slate-900 hover:bg-slate-100'
                 }`}
-                title="Export PDF Report"
+                title="Export PDF"
               >
                 <div className="shrink-0">
                   <Wind size={18} className={isGenerating ? 'animate-spin text-blue-400' : ''} />
                 </div>
                 {!isSidebarCollapsed && (
-                  <span className="text-xs uppercase tracking-wider font-semibold text-left">Export Report</span>
+                  <span className="text-xs uppercase tracking-wider font-semibold text-left">Export PDF</span>
                 )}
               </button>
             )}

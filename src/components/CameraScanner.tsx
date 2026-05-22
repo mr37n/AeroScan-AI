@@ -269,15 +269,6 @@ export default function CameraScanner({ onScanUpdate }: CameraScannerProps) {
 
             {/* Quick Actions (Refresh and Active Capsule) */}
             <div className="flex items-center gap-2.5">
-              {/* Refresh Button */}
-              <button
-                onClick={startCamera}
-                className="w-9 h-9 rounded-xl border border-slate-800 bg-[#0f172a] hover:bg-slate-900 text-slate-300 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-sm"
-                title="Mulai Ulang / Hubungkan"
-              >
-                <RotateCw size={14} className="text-slate-200" />
-              </button>
-
               {/* ACTIVE Capsule Badge */}
               <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-emerald-500/25 bg-[#022c22]/60 text-[#10b981] text-[10px] font-black uppercase tracking-wider animate-pulse leading-none select-none">
                 <Video size={13} className="text-emerald-500" />
@@ -297,9 +288,6 @@ export default function CameraScanner({ onScanUpdate }: CameraScannerProps) {
             <h2 className="text-[23px] font-black text-white uppercase tracking-tight mb-2.5 font-sans">
               SCANNER STANDBY
             </h2>
-            <p className="text-[11.5px] text-slate-450 font-bold max-w-[285px] text-center leading-[1.6] opacity-90 antialiased">
-              Tekan tombol kamera di kanan atas untuk mengaktifkan analisa visual kepadatan polutan secara real-time.
-            </p>
           </div>
 
           {/* Bottom Pane Section: Status connection & Hubungkan FISIK button block */}

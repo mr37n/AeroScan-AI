@@ -709,7 +709,7 @@ export default function ReportGenerator({ userCity = "Jakarta", userCoords = nul
         )}
         <div className="flex flex-col items-start">
           <span className="text-[10px] text-white/40 uppercase tracking-[0.2em] mb-0.5">Ready to Print</span>
-          <span className="text-sm tracking-tight">Export PDF Report</span>
+          <span className="text-sm tracking-tight">Export PDF</span>
         </div>
       </div>
 
